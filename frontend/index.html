@@ -91,7 +91,7 @@
             transform: translateY(-2px);
         }
         
-        /* Chat Screen - FIXED SCROLLING */
+        /* Chat Screen */
         .chat-screen {
             display: none;
             flex-direction: column;
@@ -264,6 +264,31 @@
         .scroll-indicator:hover {
             background: rgba(102, 126, 234, 1);
         }
+        
+        /* Loading indicator */
+        .loading {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+        
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -293,11 +318,18 @@
                 <button onclick="sendMessage()">Send</button>
             </div>
             <div class="report-actions" id="reportActions">
-                <button onclick="downloadReport()">Download Report</button>
+                <button onclick="downloadReport()">Download Text</button>
+                <button onclick="downloadPDF()">Download PDF</button>
                 <button onclick="printReport()">Print Report</button>
                 <button onclick="startNewAssessment()">New Assessment</button>
                 <button onclick="closeAssessment()">Close</button>
             </div>
+        </div>
+        
+        <!-- Loading indicator -->
+        <div class="loading" id="loadingIndicator">
+            <div class="loading-spinner"></div>
+            <p>Generating PDF...</p>
         </div>
     </div>
     
@@ -472,6 +504,58 @@
             a.download = `celloxen-assessment-${sessionId}.txt`;
             a.click();
             window.URL.revokeObjectURL(url);
+        }
+        
+        async function downloadPDF() {
+            if (!assessmentReport || !sessionId) {
+                alert('No report available to convert to PDF');
+                return;
+            }
+            
+            // Show loading indicator
+            document.getElementById('loadingIndicator').style.display = 'block';
+            
+            try {
+                const response = await fetch('/api/GeneratePDF', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sessionId: sessionId,
+                        reportContent: assessmentReport
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.pdf) {
+                    // Convert base64 to blob
+                    const pdfData = atob(data.pdf);
+                    const pdfArray = new Uint8Array(pdfData.length);
+                    for (let i = 0; i < pdfData.length; i++) {
+                        pdfArray[i] = pdfData.charCodeAt(i);
+                    }
+                    const blob = new Blob([pdfArray], { type: 'application/pdf' });
+                    
+                    // Download PDF
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = data.filename || `celloxen-report-${sessionId}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                } else {
+                    alert('Failed to generate PDF. Please try again.');
+                    console.error('PDF generation failed:', data);
+                }
+            } catch (error) {
+                console.error('PDF generation error:', error);
+                alert('Failed to generate PDF. Please try again.');
+            } finally {
+                // Hide loading indicator
+                document.getElementById('loadingIndicator').style.display = 'none';
+            }
         }
         
         function printReport() {
