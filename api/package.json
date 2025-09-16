@@ -1,8 +1,7 @@
 {
-  "name": "celloxen-ai-api",
+  "name": "celloxen-api",
   "version": "1.0.0",
   "dependencies": {
-    "pg": "^8.11.3",
     "uuid": "^9.0.0"
   }
 }
