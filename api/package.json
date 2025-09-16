@@ -2,6 +2,7 @@
   "name": "celloxen-api",
   "version": "1.0.0",
   "dependencies": {
-    "uuid": "^9.0.0"
+    "uuid": "^9.0.0",
+    "pg": "^8.11.3"
   }
 }
