@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Celloxen AI Health Agent</title>
+    <!-- Add jsPDF library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -264,31 +266,6 @@
         .scroll-indicator:hover {
             background: rgba(102, 126, 234, 1);
         }
-        
-        /* Loading indicator */
-        .loading {
-            display: none;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-        }
-        
-        .loading-spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 10px;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
     </style>
 </head>
 <body>
@@ -319,17 +296,11 @@
             </div>
             <div class="report-actions" id="reportActions">
                 <button onclick="downloadReport()">Download Text</button>
-                <button onclick="downloadPDF()">Download PDF</button>
+                <button onclick="generatePDF()">Download PDF</button>
                 <button onclick="printReport()">Print Report</button>
                 <button onclick="startNewAssessment()">New Assessment</button>
                 <button onclick="closeAssessment()">Close</button>
             </div>
-        </div>
-        
-        <!-- Loading indicator -->
-        <div class="loading" id="loadingIndicator">
-            <div class="loading-spinner"></div>
-            <p>Generating PDF...</p>
         </div>
     </div>
     
@@ -337,6 +308,7 @@
         let sessionId = null;
         let currentPhase = 'initial';
         let assessmentReport = null;
+        let reportData = null;
         let progressMap = {
             'greeting': 5,
             'confirm_assessment': 10,
@@ -387,6 +359,8 @@
             
             if (isReport) {
                 messageDiv.className = 'message report';
+                // Parse and store report data for PDF generation
+                parseReportData(text);
             } else {
                 messageDiv.className = `message ${role}`;
             }
@@ -409,6 +383,133 @@
                 document.getElementById('chatInputArea').style.display = 'none';
                 document.getElementById('reportActions').style.display = 'flex';
             }
+        }
+        
+        function parseReportData(reportText) {
+            const lines = reportText.split('\n');
+            reportData = {
+                patientInfo: '',
+                practitioner: '',
+                date: new Date().toLocaleDateString('en-GB'),
+                chiefComplaints: '',
+                healthState: [],
+                therapy: '',
+                therapyCode: '',
+                protocol: '',
+                supplements: []
+            };
+            
+            let currentSection = '';
+            for (const line of lines) {
+                if (line.includes('PATIENT INFORMATION')) {
+                    currentSection = 'patient';
+                } else if (line.includes('Practitioner:')) {
+                    reportData.practitioner = line.split(':')[1]?.trim() || '';
+                } else if (line.includes('Primary:')) {
+                    reportData.chiefComplaints = line.split(':')[1]?.trim() || '';
+                } else if (line.includes('Therapy Code:')) {
+                    reportData.therapyCode = line.split(':')[1]?.trim() || '';
+                } else if (line.includes('Therapy Name:')) {
+                    reportData.therapy = line.split(':')[1]?.trim() || '';
+                } else if (line.includes('CURRENT HEALTH STATE')) {
+                    currentSection = 'health';
+                } else if (line.includes('SUPPLEMENT RECOMMENDATIONS')) {
+                    currentSection = 'supplements';
+                } else if (currentSection === 'health' && line.trim().startsWith('-')) {
+                    reportData.healthState.push(line.trim());
+                } else if (currentSection === 'supplements' && line.trim().startsWith('-')) {
+                    reportData.supplements.push(line.trim());
+                }
+            }
+        }
+        
+        function generatePDF() {
+            if (!assessmentReport) {
+                alert('No report available to convert to PDF');
+                return;
+            }
+            
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Set colors
+            const primaryColor = [102, 126, 234];
+            const textColor = [51, 51, 51];
+            
+            // Add header
+            doc.setFillColor(...primaryColor);
+            doc.rect(0, 0, 210, 40, 'F');
+            
+            // Add title
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(22);
+            doc.text('CELLOXEN HEALTH', 105, 20, { align: 'center' });
+            doc.setFontSize(14);
+            doc.text('Assessment Report', 105, 30, { align: 'center' });
+            
+            // Reset text color
+            doc.setTextColor(...textColor);
+            
+            // Add report content
+            let yPosition = 50;
+            const pageHeight = doc.internal.pageSize.height;
+            const lines = assessmentReport.split('\n');
+            
+            doc.setFontSize(11);
+            
+            for (const line of lines) {
+                if (yPosition > pageHeight - 30) {
+                    doc.addPage();
+                    yPosition = 20;
+                }
+                
+                if (line.includes('====')) {
+                    continue;
+                }
+                
+                if (line.includes('PATIENT INFORMATION') || 
+                    line.includes('CHIEF COMPLAINTS') || 
+                    line.includes('RECOMMENDED THERAPY') ||
+                    line.includes('TREATMENT PROTOCOL') ||
+                    line.includes('SUPPLEMENT RECOMMENDATIONS')) {
+                    // Section headers
+                    doc.setFontSize(12);
+                    doc.setTextColor(...primaryColor);
+                    doc.text(line, 20, yPosition);
+                    doc.setTextColor(...textColor);
+                    doc.setFontSize(11);
+                    yPosition += 8;
+                } else if (line.startsWith('-')) {
+                    // Bullet points
+                    doc.text('•', 25, yPosition);
+                    const bulletText = line.substring(1).trim();
+                    const splitText = doc.splitTextToSize(bulletText, 160);
+                    doc.text(splitText, 30, yPosition);
+                    yPosition += splitText.length * 5;
+                } else if (line.trim()) {
+                    // Regular text
+                    const splitText = doc.splitTextToSize(line, 170);
+                    doc.text(splitText, 20, yPosition);
+                    yPosition += splitText.length * 5;
+                }
+            }
+            
+            // Add footer
+            const pageCount = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(9);
+                doc.setTextColor(150, 150, 150);
+                doc.text(
+                    `Page ${i} of ${pageCount} | Generated: ${new Date().toLocaleDateString('en-GB')} | Session: ${sessionId}`,
+                    105,
+                    doc.internal.pageSize.height - 10,
+                    { align: 'center' }
+                );
+            }
+            
+            // Save the PDF
+            doc.save(`celloxen-report-${sessionId}.pdf`);
         }
         
         function scrollToBottom() {
@@ -448,7 +549,7 @@
             
             addMessage('user', message);
             input.value = '';
-            input.focus(); // Keep focus on input
+            input.focus();
             
             try {
                 const response = await fetch('/api/HealthAgent', {
@@ -468,7 +569,6 @@
                     addMessage('assistant', data.message || data.response);
                     updateProgressBar();
                     
-                    // Check if session was terminated for safety
                     if (data.phase === 'terminated') {
                         document.getElementById('userInput').disabled = true;
                         setTimeout(() => {
@@ -506,58 +606,6 @@
             window.URL.revokeObjectURL(url);
         }
         
-        async function downloadPDF() {
-            if (!assessmentReport || !sessionId) {
-                alert('No report available to convert to PDF');
-                return;
-            }
-            
-            // Show loading indicator
-            document.getElementById('loadingIndicator').style.display = 'block';
-            
-            try {
-                const response = await fetch('/api/GeneratePDF', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        sessionId: sessionId,
-                        reportContent: assessmentReport
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success && data.pdf) {
-                    // Convert base64 to blob
-                    const pdfData = atob(data.pdf);
-                    const pdfArray = new Uint8Array(pdfData.length);
-                    for (let i = 0; i < pdfData.length; i++) {
-                        pdfArray[i] = pdfData.charCodeAt(i);
-                    }
-                    const blob = new Blob([pdfArray], { type: 'application/pdf' });
-                    
-                    // Download PDF
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = data.filename || `celloxen-report-${sessionId}.pdf`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    window.URL.revokeObjectURL(url);
-                } else {
-                    alert('Failed to generate PDF. Please try again.');
-                    console.error('PDF generation failed:', data);
-                }
-            } catch (error) {
-                console.error('PDF generation error:', error);
-                alert('Failed to generate PDF. Please try again.');
-            } finally {
-                // Hide loading indicator
-                document.getElementById('loadingIndicator').style.display = 'none';
-            }
-        }
-        
         function printReport() {
             if (!assessmentReport) return;
             
@@ -574,6 +622,7 @@
             sessionId = null;
             currentPhase = 'initial';
             assessmentReport = null;
+            reportData = null;
             document.getElementById('chatMessages').innerHTML = '';
             document.getElementById('progressFill').style.width = '0%';
             document.getElementById('chatInputArea').style.display = 'flex';
@@ -587,6 +636,7 @@
                 sessionId = null;
                 currentPhase = 'initial';
                 assessmentReport = null;
+                reportData = null;
                 document.getElementById('chatMessages').innerHTML = '';
                 document.getElementById('progressFill').style.width = '0%';
                 document.getElementById('chatScreen').style.display = 'none';
