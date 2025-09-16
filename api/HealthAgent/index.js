@@ -30,6 +30,66 @@ const THERAPIES = {
 
 const sessions = {};
 
+// Claude API helper function
+async function callClaude(systemPrompt, userMessage) {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    
+    // If no API key, fall back to standard responses
+    if (!apiKey || apiKey === 'your-key-here') {
+        return null; // Will use fallback responses
+    }
+    
+    try {
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': apiKey,
+                'anthropic-version': '2023-06-01'
+            },
+            body: JSON.stringify({
+                model: 'claude-3-haiku-20240307',
+                max_tokens: 500,
+                messages: [{
+                    role: 'user',
+                    content: userMessage
+                }],
+                system: systemPrompt
+            })
+        });
+        
+        if (!response.ok) {
+            console.log('Claude API error:', response.status);
+            return null;
+        }
+        
+        const data = await response.json();
+        return data.content[0].text;
+    } catch (error) {
+        console.log('Claude API call failed:', error.message);
+        return null;
+    }
+}
+
+// Analyze symptoms with Claude
+async function analyzeSymptoms(session) {
+    const systemPrompt = `You are a medical assessment AI analyzing patient symptoms for Celloxen bioelectromagnetic therapy selection. Based on the symptoms, identify the most likely health condition category and suggest appropriate therapy focus. Be specific and medical in your analysis.`;
+    
+    const userMessage = `Patient presents with:
+Primary complaint: ${session.symptoms[0]}
+Duration: ${session.assessmentAnswers[0]}
+Severity: ${session.assessmentAnswers[1]}/10
+Additional symptoms: ${session.symptoms.slice(1).join(', ')}
+
+Analyze these symptoms and identify:
+1. Most likely condition category
+2. Key therapeutic focus needed
+3. Any red flags or concerns`;
+
+    const analysis = await callClaude(systemPrompt, userMessage);
+    return analysis;
+}
+
 module.exports = async function (context, req) {
     context.log('Health Agent API called');
     
@@ -47,7 +107,8 @@ module.exports = async function (context, req) {
             symptoms: [],
             assessmentAnswers: [],
             contraindications: [],
-            recommendedTherapy: null
+            recommendedTherapy: null,
+            aiAnalysis: null
         };
     }
     
@@ -190,7 +251,14 @@ async function processConversation(session, message) {
                 return "For patient safety, this assessment cannot continue without doctor's approval. Please refer the patient to their doctor. Session terminated for safety.";
             }
             session.phase = 'assess_main';
-            return "Thank you. No concerning contraindications found.\n\nNow let's assess the patient's health. What is the patient's PRIMARY health concern or main symptom?";
+            
+            // Use Claude for dynamic question if available
+            const dynamicQuestion = await callClaude(
+                "You are a medical assessment AI. Generate a professional, empathetic question to ask about a patient's primary health concern.",
+                "Create a single question to identify the patient's main health issue. Be warm but professional."
+            );
+            
+            return dynamicQuestion || "Thank you. No concerning contraindications found.\n\nNow let's assess the patient's health. What is the patient's PRIMARY health concern or main symptom?";
             
         case 'assess_main':
             session.symptoms.push(message);
@@ -205,7 +273,14 @@ async function processConversation(session, message) {
         case 'assess_severity':
             session.assessmentAnswers.push(message);
             session.phase = 'assess_related';
-            return "Are there any other related symptoms or secondary complaints?";
+            
+            // Use Claude for follow-up question based on primary symptom
+            const followUp = await callClaude(
+                "You are a medical assessment AI. The patient's main symptom is: " + session.symptoms[0],
+                "Generate a specific follow-up question about related symptoms for this condition. Be concise."
+            );
+            
+            return followUp || "Are there any other related symptoms or secondary complaints?";
             
         case 'assess_related':
             session.symptoms.push(message);
@@ -234,7 +309,13 @@ async function processConversation(session, message) {
             
         case 'assess_diabetes':
             session.symptoms.push(message);
-            const therapy = await selectBestTherapy(session);
+            
+            // Get AI analysis of symptoms
+            const aiAnalysis = await analyzeSymptoms(session);
+            session.aiAnalysis = aiAnalysis;
+            
+            // Select best therapy with AI insight
+            const therapy = await selectBestTherapy(session, aiAnalysis);
             session.recommendedTherapy = therapy;
             session.phase = 'report_complete';
             
@@ -272,7 +353,8 @@ async function processConversation(session, message) {
                     symptoms: [],
                     assessmentAnswers: [],
                     contraindications: [],
-                    recommendedTherapy: null
+                    recommendedTherapy: null,
+                    aiAnalysis: null
                 };
                 return "Starting new assessment. May I have your name, practitioner?";
             } else if (lower.includes('close') || lower.includes('end')) {
@@ -289,22 +371,45 @@ async function processConversation(session, message) {
     }
 }
 
-async function selectBestTherapy(session) {
+async function selectBestTherapy(session, aiAnalysis) {
     const allSymptoms = session.symptoms.join(' ').toLowerCase();
     const severity = parseInt(session.assessmentAnswers[1]) || 5;
     const duration = session.assessmentAnswers[0] || '';
     
     let therapyScores = {};
     
-    // Score each therapy based on multiple factors
+    // If we have AI analysis, use it to boost relevant therapies
+    if (aiAnalysis) {
+        const analysisLower = aiAnalysis.toLowerCase();
+        
+        // Boost scores based on AI-identified conditions
+        if (analysisLower.includes('stress') || analysisLower.includes('anxiety')) {
+            therapyScores['102'] = (therapyScores['102'] || 0) + 30;
+            therapyScores['103'] = (therapyScores['103'] || 0) + 25;
+        }
+        if (analysisLower.includes('sleep')) {
+            therapyScores['101'] = (therapyScores['101'] || 0) + 30;
+            therapyScores['104'] = (therapyScores['104'] || 0) + 25;
+        }
+        if (analysisLower.includes('cardiovascular') || analysisLower.includes('heart')) {
+            therapyScores['301'] = (therapyScores['301'] || 0) + 30;
+            therapyScores['302'] = (therapyScores['302'] || 0) + 25;
+        }
+        if (analysisLower.includes('joint') || analysisLower.includes('arthritis')) {
+            therapyScores['402'] = (therapyScores['402'] || 0) + 30;
+            therapyScores['403'] = (therapyScores['403'] || 0) + 25;
+        }
+    }
+    
+    // Standard scoring algorithm
     for (const [code, therapy] of Object.entries(THERAPIES)) {
-        let score = 0;
+        let score = therapyScores[code] || 0;
         
         // Primary symptom matching (highest weight)
         const primarySymptom = session.symptoms[0].toLowerCase();
         for (const keyword of therapy.keywords) {
             if (primarySymptom.includes(keyword)) {
-                score += 30; // Primary symptom gets more weight
+                score += 30;
             }
         }
         
@@ -327,12 +432,10 @@ async function selectBestTherapy(session) {
         
         // Severity adjustment
         if (severity >= 8) {
-            // High severity - prioritize intensive therapies
             if (['301', '100', '401', '501'].includes(code)) {
                 score += 15;
             }
         } else if (severity <= 3) {
-            // Low severity - prioritize wellness packages
             if (['801', '802', '103'].includes(code)) {
                 score += 10;
             }
@@ -340,7 +443,6 @@ async function selectBestTherapy(session) {
         
         // Duration adjustment
         if (duration.includes('year') || duration.includes('chronic')) {
-            // Chronic conditions - comprehensive packages
             if (['801', '802', '402', '601'].includes(code)) {
                 score += 10;
             }
@@ -349,14 +451,14 @@ async function selectBestTherapy(session) {
         // Check for multiple system involvement
         const hasMultipleIssues = session.symptoms.filter(s => s.toLowerCase() !== 'no').length > 3;
         if (hasMultipleIssues && ['801', '802'].includes(code)) {
-            score += 20; // Prefer comprehensive packages for multiple issues
+            score += 20;
         }
         
         therapyScores[code] = score;
     }
     
     // Find best match
-    let bestCode = '801'; // Default
+    let bestCode = '801';
     let highestScore = 0;
     
     for (const [code, score] of Object.entries(therapyScores)) {
@@ -385,6 +487,16 @@ async function selectBestTherapy(session) {
 async function generateFullReport(session, therapy) {
     const date = new Date().toLocaleDateString('en-GB');
     const patient = session.patientData.details || 'Not provided';
+    
+    // Include AI analysis if available
+    let aiInsight = '';
+    if (session.aiAnalysis) {
+        aiInsight = `
+AI CLINICAL ANALYSIS
+--------------------
+${session.aiAnalysis}
+`;
+    }
     
     // Format supplements section
     let supplementSection = '';
@@ -420,7 +532,7 @@ Severity: ${session.assessmentAnswers[1]}/10
 CURRENT HEALTH STATE
 --------------------
 ${session.symptoms.map((s, i) => `- ${s}`).join('\n')}
-
+${aiInsight}
 DIAGNOSTIC RATIONALE
 --------------------
 Based on holistic assessment, the patient presents with symptoms
