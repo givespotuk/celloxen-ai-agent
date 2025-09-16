@@ -27,7 +27,7 @@
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
             width: 100%;
             max-width: 900px;
-            height: 600px;
+            height: 700px;
             overflow: hidden;
             display: flex;
             flex-direction: column;
@@ -130,6 +130,7 @@
             padding: 12px 18px;
             border-radius: 18px;
             position: relative;
+            word-wrap: break-word;
         }
         
         .message.assistant .message-bubble {
@@ -141,6 +142,14 @@
         .message.user .message-bubble {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
+        }
+        
+        .message.report .message-bubble {
+            max-width: 90%;
+            background: #f0f0f0;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
         }
         
         .chat-input {
@@ -183,26 +192,24 @@
             transition: width 0.5s ease;
         }
         
-        /* Report Screen */
-        .report-screen {
-            display: none;
-            flex-direction: column;
-            flex: 1;
-            padding: 30px;
-            overflow-y: auto;
-        }
-        
-        .report-content {
-            background: #f8f9fa;
-            padding: 30px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-        
+        /* Report Actions */
         .report-actions {
-            display: flex;
+            display: none;
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
             gap: 10px;
             justify-content: center;
+        }
+        
+        .report-actions button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 20px;
+            cursor: pointer;
+            margin: 0 5px;
         }
     </style>
 </head>
@@ -227,27 +234,43 @@
         <!-- Chat Screen -->
         <div class="chat-screen" id="chatScreen">
             <div class="chat-messages" id="chatMessages"></div>
-            <div class="chat-input">
+            <div class="chat-input" id="chatInputArea">
                 <input type="text" id="userInput" placeholder="Type your message here..." onkeypress="handleKeyPress(event)">
                 <button onclick="sendMessage()">Send</button>
             </div>
-        </div>
-        
-        <!-- Report Screen -->
-        <div class="report-screen" id="reportScreen">
-            <h2>Your Health Assessment Report</h2>
-            <div class="report-content" id="reportContent"></div>
-            <div class="report-actions">
-                <button class="btn-primary" onclick="downloadReport()">Download Report</button>
-                <button class="btn-primary" onclick="startNewAssessment()">New Assessment</button>
+            <div class="report-actions" id="reportActions">
+                <button onclick="downloadReport()">Download Report</button>
+                <button onclick="printReport()">Print Report</button>
+                <button onclick="startNewAssessment()">New Assessment</button>
+                <button onclick="closeAssessment()">Close</button>
             </div>
         </div>
     </div>
     
     <script>
         let sessionId = null;
-        let messageCount = 0;
         let currentPhase = 'initial';
+        let assessmentReport = null;
+        let progressMap = {
+            'greeting': 5,
+            'confirm_assessment': 10,
+            'patient_registration': 15,
+            'ready_check': 20,
+            'contra_pacemaker': 25,
+            'contra_pregnancy': 30,
+            'contra_cancer': 35,
+            'contra_heart': 40,
+            'assess_main': 45,
+            'assess_duration': 50,
+            'assess_severity': 55,
+            'assess_related': 60,
+            'assess_sleep': 65,
+            'assess_digestive': 70,
+            'assess_joints': 75,
+            'assess_cardio': 80,
+            'assess_diabetes': 85,
+            'report_complete': 100
+        };
         
         async function startAssessment() {
             try {
@@ -256,11 +279,12 @@
                 
                 if (data.success) {
                     sessionId = data.sessionId;
+                    currentPhase = data.phase;
                     document.getElementById('welcomeScreen').style.display = 'none';
                     document.getElementById('chatScreen').style.display = 'flex';
                     
-                    addMessage('assistant', data.message || "Hello! I'm your AI Health Assistant. What brings you here today?");
-                    updateProgress(20);
+                    addMessage('assistant', data.message || data.response);
+                    updateProgressBar();
                 }
             } catch (error) {
                 console.error('Error:', error);
@@ -271,7 +295,15 @@
         function addMessage(role, text) {
             const messagesDiv = document.getElementById('chatMessages');
             const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${role}`;
+            
+            // Check if this is a report (long text with specific formatting)
+            const isReport = text && text.includes('CELLOXEN HEALTH ASSESSMENT REPORT');
+            
+            if (isReport) {
+                messageDiv.className = 'message report';
+            } else {
+                messageDiv.className = `message ${role}`;
+            }
             
             const bubbleDiv = document.createElement('div');
             bubbleDiv.className = 'message-bubble';
@@ -280,6 +312,13 @@
             messageDiv.appendChild(bubbleDiv);
             messagesDiv.appendChild(messageDiv);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            
+            // If it's a report, store it and show report actions
+            if (isReport) {
+                assessmentReport = text;
+                document.getElementById('chatInputArea').style.display = 'none';
+                document.getElementById('reportActions').style.display = 'flex';
+            }
         }
         
         async function sendMessage() {
@@ -290,7 +329,6 @@
             
             addMessage('user', message);
             input.value = '';
-            messageCount++;
             
             try {
                 const response = await fetch('/api/HealthAgent', {
@@ -306,17 +344,17 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    addMessage('assistant', data.response);
+                    currentPhase = data.phase;
+                    addMessage('assistant', data.message || data.response);
+                    updateProgressBar();
                     
-                    // Update progress based on message count
-                    const progress = Math.min(20 + (messageCount * 15), 90);
-                    updateProgress(progress);
-                    
-                    // Check if assessment is complete
-                    if (messageCount >= 5) {
+                    // Check if session was terminated for safety
+                    if (data.phase === 'terminated') {
+                        document.getElementById('userInput').disabled = true;
                         setTimeout(() => {
-                            completeAssessment();
-                        }, 2000);
+                            alert('Session terminated for patient safety. Please refer the patient to their doctor.');
+                            startNewAssessment();
+                        }, 3000);
                     }
                 }
             } catch (error) {
@@ -331,57 +369,60 @@
             }
         }
         
-        function updateProgress(percent) {
-            document.getElementById('progressFill').style.width = percent + '%';
-        }
-        
-        async function completeAssessment() {
-            updateProgress(100);
-            
-            // Generate report
-            const report = `
-                <h3>Assessment Summary</h3>
-                <p><strong>Session ID:</strong> ${sessionId}</p>
-                <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
-                <p><strong>Messages Exchanged:</strong> ${messageCount}</p>
-                
-                <h3>Health Analysis</h3>
-                <p>Based on our conversation, here are your personalised health recommendations:</p>
-                <ul>
-                    <li>Continue monitoring your symptoms</li>
-                    <li>Consider scheduling a follow-up consultation</li>
-                    <li>Maintain a healthy lifestyle with regular exercise</li>
-                </ul>
-                
-                <h3>Recommended Next Steps</h3>
-                <p>1. Review this assessment with your healthcare provider</p>
-                <p>2. Track your symptoms over the next week</p>
-                <p>3. Schedule a follow-up assessment if symptoms persist</p>
-            `;
-            
-            document.getElementById('reportContent').innerHTML = report;
-            document.getElementById('chatScreen').style.display = 'none';
-            document.getElementById('reportScreen').style.display = 'flex';
+        function updateProgressBar() {
+            const progress = progressMap[currentPhase] || 0;
+            document.getElementById('progressFill').style.width = progress + '%';
         }
         
         function downloadReport() {
-            const reportText = document.getElementById('reportContent').innerText;
-            const blob = new Blob([reportText], { type: 'text/plain' });
+            if (!assessmentReport) return;
+            
+            const blob = new Blob([assessmentReport], { type: 'text/plain' });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `health-assessment-${sessionId}.txt`;
+            a.download = `celloxen-assessment-${sessionId}.txt`;
             a.click();
+            window.URL.revokeObjectURL(url);
+        }
+        
+        function printReport() {
+            if (!assessmentReport) return;
+            
+            const printWindow = window.open('', '', 'width=800,height=600');
+            printWindow.document.write('<html><head><title>Celloxen Health Assessment Report</title></head><body>');
+            printWindow.document.write('<pre style="font-family: monospace; font-size: 12px;">');
+            printWindow.document.write(assessmentReport.replace(/</g, '&lt;').replace(/>/g, '&gt;'));
+            printWindow.document.write('</pre></body></html>');
+            printWindow.document.close();
+            printWindow.print();
         }
         
         function startNewAssessment() {
             sessionId = null;
-            messageCount = 0;
             currentPhase = 'initial';
+            assessmentReport = null;
             document.getElementById('chatMessages').innerHTML = '';
             document.getElementById('progressFill').style.width = '0%';
-            document.getElementById('reportScreen').style.display = 'none';
-            document.getElementById('welcomeScreen').style.display = 'flex';
+            document.getElementById('chatInputArea').style.display = 'flex';
+            document.getElementById('reportActions').style.display = 'none';
+            document.getElementById('userInput').disabled = false;
+            startAssessment();
+        }
+        
+        function closeAssessment() {
+            if (confirm('Are you sure you want to close this assessment?')) {
+                sessionId = null;
+                currentPhase = 'initial';
+                assessmentReport = null;
+                document.getElementById('chatMessages').innerHTML = '';
+                document.getElementById('progressFill').style.width = '0%';
+                document.getElementById('chatScreen').style.display = 'none';
+                document.getElementById('welcomeScreen').style.display = 'flex';
+                document.getElementById('chatInputArea').style.display = 'flex';
+                document.getElementById('reportActions').style.display = 'none';
+                document.getElementById('userInput').disabled = false;
+            }
         }
     </script>
 </body>
