@@ -157,6 +157,15 @@
             padding: 30px;
         }
 
+        /* Section Content */
+        .section-content {
+            display: none;
+        }
+
+        .section-content.active {
+            display: block;
+        }
+
         /* Stats Cards */
         .stats-row {
             display: grid;
@@ -424,6 +433,7 @@
             text-decoration: none;
             font-weight: 500;
             transition: color 0.3s ease;
+            cursor: pointer;
         }
 
         .action-links a:hover {
@@ -451,6 +461,36 @@
 
         .empty-state p {
             margin-bottom: 20px;
+        }
+
+        /* Alert Messages */
+        .alert {
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
         }
 
         /* Loading Spinner */
@@ -536,7 +576,7 @@
         <div class="top-nav">
             <h1 class="breadcrumb">Dashboard</h1>
             <div class="top-actions">
-                <a href="/index.html" class="start-assessment-btn" onclick="startNewAssessment(event)">+ New Assessment</a>
+                <button class="start-assessment-btn" onclick="startNewAssessment()">+ New Assessment</button>
                 <div class="user-info">
                     <span class="user-name" id="userName">Clinic User</span>
                     <button class="logout-btn" onclick="logout()">Logout</button>
@@ -546,99 +586,159 @@
 
         <!-- Dashboard Content -->
         <div class="dashboard-content">
-            <!-- Stats Cards -->
-            <div class="stats-row">
-                <div class="stat-card patients">
-                    <div class="stat-icon">👥</div>
-                    <div class="stat-value" id="totalPatients">0</div>
-                    <div class="stat-label">Total Patients</div>
+            <div class="alert success" id="successAlert"></div>
+            <div class="alert error" id="errorAlert"></div>
+            <div class="alert info" id="infoAlert"></div>
+
+            <!-- Dashboard Section -->
+            <div id="dashboard-section" class="section-content active">
+                <!-- Stats Cards -->
+                <div class="stats-row">
+                    <div class="stat-card patients">
+                        <div class="stat-icon">👥</div>
+                        <div class="stat-value" id="totalPatients">0</div>
+                        <div class="stat-label">Total Patients</div>
+                    </div>
+                    <div class="stat-card assessments">
+                        <div class="stat-icon">📋</div>
+                        <div class="stat-value" id="totalAssessments">0</div>
+                        <div class="stat-label">Total Assessments</div>
+                    </div>
+                    <div class="stat-card pending">
+                        <div class="stat-icon">⏳</div>
+                        <div class="stat-value" id="pendingReports">0</div>
+                        <div class="stat-label">Pending Reports</div>
+                    </div>
+                    <div class="stat-card usage">
+                        <div class="stat-icon">📊</div>
+                        <div class="stat-value"><span id="usageCount">0</span>/<span id="usageLimit">100</span></div>
+                        <div class="stat-label">Monthly Usage</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="usageProgress" style="width: 0%"></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="stat-card assessments">
-                    <div class="stat-icon">📋</div>
-                    <div class="stat-value" id="totalAssessments">0</div>
-                    <div class="stat-label">Total Assessments</div>
+
+                <!-- Quick Actions -->
+                <div class="quick-actions">
+                    <h3>Quick Actions</h3>
+                    <div class="action-buttons-grid">
+                        <a href="#" class="action-btn" onclick="startNewAssessment(); return false;">
+                            <i>➕</i>
+                            Start New Assessment
+                        </a>
+                        <a href="#" class="action-btn" onclick="showSection('patients'); return false;">
+                            <i>👤</i>
+                            View Patients
+                        </a>
+                        <a href="#" class="action-btn" onclick="showSection('reports'); return false;">
+                            <i>📊</i>
+                            View Reports
+                        </a>
+                        <a href="#" class="action-btn" onclick="downloadAllReports(); return false;">
+                            <i>💾</i>
+                            Export Data
+                        </a>
+                    </div>
                 </div>
-                <div class="stat-card pending">
-                    <div class="stat-icon">⏳</div>
-                    <div class="stat-value" id="pendingReports">0</div>
-                    <div class="stat-label">Pending Reports</div>
-                </div>
-                <div class="stat-card usage">
-                    <div class="stat-icon">📊</div>
-                    <div class="stat-value"><span id="usageCount">0</span>/<span id="usageLimit">100</span></div>
-                    <div class="stat-label">Monthly Usage</div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="usageProgress" style="width: 0%"></div>
+
+                <!-- Recent Assessments Table -->
+                <div class="table-section">
+                    <div class="table-header">
+                        <h3>Recent Assessments</h3>
+                    </div>
+
+                    <div class="loading" id="loadingDiv">
+                        <div class="spinner"></div>
+                        <p>Loading assessments...</p>
+                    </div>
+
+                    <table class="data-table" id="dashboardAssessmentsTable" style="display: none;">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Patient Name</th>
+                                <th>Assessment ID</th>
+                                <th>Status</th>
+                                <th>Therapy</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dashboardAssessmentsBody">
+                            <!-- Data will be loaded here -->
+                        </tbody>
+                    </table>
+
+                    <div class="empty-state" id="dashboardEmptyState" style="display: none;">
+                        <i>📋</i>
+                        <h4>No Assessments Yet</h4>
+                        <p>Start your first assessment to see it here</p>
+                        <button class="start-assessment-btn" onclick="startNewAssessment()">Start Assessment</button>
                     </div>
                 </div>
             </div>
 
-            <!-- Quick Actions -->
-            <div class="quick-actions">
-                <h3>Quick Actions</h3>
-                <div class="action-buttons-grid">
-                    <a href="#" class="action-btn" onclick="startNewAssessment(event)">
-                        <i>➕</i>
-                        Start New Assessment
-                    </a>
-                    <a href="#" class="action-btn" onclick="showSection('patients')">
-                        <i>👤</i>
-                        Add New Patient
-                    </a>
-                    <a href="#" class="action-btn" onclick="showSection('reports')">
-                        <i>📊</i>
-                        View Reports
-                    </a>
-                    <a href="#" class="action-btn" onclick="exportData()">
-                        <i>💾</i>
-                        Export Data
-                    </a>
+            <!-- Assessments Section -->
+            <div id="assessments-section" class="section-content">
+                <div class="table-section">
+                    <div class="table-header">
+                        <h3>All Assessments</h3>
+                    </div>
+
+                    <div class="table-tabs">
+                        <button class="tab-btn active" onclick="filterAssessments('all', this)">All</button>
+                        <button class="tab-btn" onclick="filterAssessments('completed', this)">Completed</button>
+                        <button class="tab-btn" onclick="filterAssessments('in_progress', this)">In Progress</button>
+                    </div>
+
+                    <div class="search-filter-bar">
+                        <input type="text" id="searchInput" placeholder="Search by patient name or ID...">
+                        <button class="filter-btn" onclick="searchAssessments()">Search</button>
+                    </div>
+
+                    <table class="data-table" id="assessmentsTable">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Patient Name</th>
+                                <th>Assessment ID</th>
+                                <th>Status</th>
+                                <th>Therapy</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="assessmentsTableBody">
+                            <!-- Data will be loaded here -->
+                        </tbody>
+                    </table>
+
+                    <div class="empty-state" id="assessmentsEmptyState" style="display: none;">
+                        <i>📋</i>
+                        <h4>No Assessments Found</h4>
+                        <p>Try adjusting your filters or search criteria</p>
+                    </div>
                 </div>
             </div>
 
-            <!-- Recent Assessments Table -->
-            <div class="table-section">
-                <div class="table-header">
-                    <h3>Recent Assessments</h3>
+            <!-- Other sections can be added here -->
+            <div id="patients-section" class="section-content">
+                <div class="table-section">
+                    <h3>Patient Management</h3>
+                    <p>Patient management features coming soon...</p>
                 </div>
+            </div>
 
-                <div class="table-tabs">
-                    <button class="tab-btn active" onclick="filterAssessments('all')">All</button>
-                    <button class="tab-btn" onclick="filterAssessments('completed')">Completed</button>
-                    <button class="tab-btn" onclick="filterAssessments('in_progress')">In Progress</button>
+            <div id="reports-section" class="section-content">
+                <div class="table-section">
+                    <h3>Reports</h3>
+                    <p>Report generation and management features coming soon...</p>
                 </div>
+            </div>
 
-                <div class="search-filter-bar">
-                    <input type="text" id="searchInput" placeholder="Search by patient name or ID...">
-                    <button class="filter-btn" onclick="searchAssessments()">Search</button>
-                </div>
-
-                <div class="loading" id="loadingDiv">
-                    <div class="spinner"></div>
-                    <p>Loading assessments...</p>
-                </div>
-
-                <table class="data-table" id="assessmentsTable" style="display: none;">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Patient Name</th>
-                            <th>Assessment ID</th>
-                            <th>Status</th>
-                            <th>Therapy</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="assessmentsTableBody">
-                        <!-- Data will be loaded here -->
-                    </tbody>
-                </table>
-
-                <div class="empty-state" id="emptyState" style="display: none;">
-                    <i>📋</i>
-                    <h4>No Assessments Yet</h4>
-                    <p>Start your first assessment to see it here</p>
-                    <a href="#" class="start-assessment-btn" onclick="startNewAssessment(event)">Start Assessment</a>
+            <div id="profile-section" class="section-content">
+                <div class="table-section">
+                    <h3>Clinic Profile</h3>
+                    <p>Profile settings coming soon...</p>
                 </div>
             </div>
         </div>
@@ -654,6 +754,7 @@
         }
 
         // Set clinic info
+        const clinicId = user.clinicId || user.clinic_id || (user.role === 'clinic' ? '2' : null);
         document.getElementById('clinicNameDisplay').textContent = user.clinicName || user.displayName || 'Clinic';
         document.getElementById('userName').textContent = user.displayName || 'Clinic User';
 
@@ -664,7 +765,6 @@
         loadDashboard();
 
         async function loadDashboard() {
-            // Show loading
             document.getElementById('loadingDiv').classList.add('show');
             
             try {
@@ -675,7 +775,7 @@
                         'Authorization': 'Bearer ' + token
                     },
                     body: JSON.stringify({
-                        clinicId: user.clinicId || user.id,
+                        clinicId: clinicId,
                         role: 'clinic'
                     })
                 });
@@ -693,61 +793,90 @@
                 const usage = ((stats.usageCount || 0) / (stats.usageLimit || 100)) * 100;
                 document.getElementById('usageProgress').style.width = Math.min(usage, 100) + '%';
                 
+                // Check usage limit warning
+                if (usage >= 80) {
+                    showAlert(`You have used ${stats.usageCount} of ${stats.usageLimit} assessments this month`, 'info');
+                }
+                
                 // Store and display assessments
                 allAssessments = stats.recentAssessments || [];
-                displayAssessments(allAssessments);
+                displayDashboardAssessments(allAssessments);
+                displayAllAssessments(allAssessments);
                 
             } catch (error) {
                 console.error('Error loading dashboard:', error);
-                displayAssessments([]);
+                showAlert('Error loading dashboard data', 'error');
             } finally {
                 document.getElementById('loadingDiv').classList.remove('show');
             }
         }
 
-        function displayAssessments(assessments) {
-            const tbody = document.getElementById('assessmentsTableBody');
+        function displayDashboardAssessments(assessments) {
+            const tbody = document.getElementById('dashboardAssessmentsBody');
             tbody.innerHTML = '';
             
             if (!assessments || assessments.length === 0) {
-                document.getElementById('assessmentsTable').style.display = 'none';
-                document.getElementById('emptyState').style.display = 'block';
+                document.getElementById('dashboardAssessmentsTable').style.display = 'none';
+                document.getElementById('dashboardEmptyState').style.display = 'block';
                 return;
             }
             
-            document.getElementById('assessmentsTable').style.display = 'table';
-            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('dashboardAssessmentsTable').style.display = 'table';
+            document.getElementById('dashboardEmptyState').style.display = 'none';
             
-            assessments.forEach(assessment => {
-                const row = document.createElement('tr');
-                const date = new Date(assessment.started_at).toLocaleDateString('en-GB');
-                const statusClass = assessment.status.replace('_', '-');
-                
-                row.innerHTML = `
-                    <td>${date}</td>
-                    <td class="patient-name">${assessment.patient_name || 'Unknown'}</td>
-                    <td>${assessment.session_id}</td>
-                    <td><span class="assessment-status ${statusClass}">${assessment.status}</span></td>
-                    <td>${assessment.therapy || 'Pending'}</td>
-                    <td>
-                        <div class="action-links">
-                            <a href="#" onclick="viewAssessment('${assessment.session_id}')">View</a>
-                            ${assessment.status === 'completed' ? 
-                                `<a href="#" onclick="downloadReport('${assessment.session_id}')">Download</a>` : 
-                                ''}
-                        </div>
-                    </td>
-                `;
+            // Show only recent 5 assessments on dashboard
+            assessments.slice(0, 5).forEach(assessment => {
+                const row = createAssessmentRow(assessment);
                 tbody.appendChild(row);
             });
         }
 
-        function filterAssessments(filter) {
+        function displayAllAssessments(assessments) {
+            const tbody = document.getElementById('assessmentsTableBody');
+            tbody.innerHTML = '';
+            
+            if (!assessments || assessments.length === 0) {
+                document.getElementById('assessmentsEmptyState').style.display = 'block';
+                return;
+            }
+            
+            document.getElementById('assessmentsEmptyState').style.display = 'none';
+            
+            assessments.forEach(assessment => {
+                const row = createAssessmentRow(assessment);
+                tbody.appendChild(row);
+            });
+        }
+
+        function createAssessmentRow(assessment) {
+            const row = document.createElement('tr');
+            const date = new Date(assessment.started_at).toLocaleDateString('en-GB');
+            const statusClass = (assessment.status || '').replace('_', '-');
+            
+            row.innerHTML = `
+                <td>${date}</td>
+                <td class="patient-name">${assessment.patient_name || 'Unknown'}</td>
+                <td>${assessment.session_id || assessment.sessionId || 'N/A'}</td>
+                <td><span class="assessment-status ${statusClass}">${assessment.status || 'unknown'}</span></td>
+                <td>${assessment.therapy || assessment.recommended_therapy_name || 'Pending'}</td>
+                <td>
+                    <div class="action-links">
+                        <a onclick="viewAssessment('${assessment.session_id || assessment.sessionId}')">View</a>
+                        ${assessment.status === 'completed' ? 
+                            `<a onclick="downloadReport('${assessment.session_id || assessment.sessionId}')">Download</a>` : 
+                            ''}
+                    </div>
+                </td>
+            `;
+            return row;
+        }
+
+        function filterAssessments(filter, button) {
             currentFilter = filter;
             
             // Update tab buttons
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+            if (button) button.classList.add('active');
             
             // Filter assessments
             let filtered = allAssessments;
@@ -755,7 +884,7 @@
                 filtered = allAssessments.filter(a => a.status === filter);
             }
             
-            displayAssessments(filtered);
+            displayAllAssessments(filtered);
         }
 
         function searchAssessments() {
@@ -765,7 +894,8 @@
             if (searchTerm) {
                 filtered = allAssessments.filter(a => 
                     (a.patient_name && a.patient_name.toLowerCase().includes(searchTerm)) ||
-                    (a.session_id && a.session_id.toLowerCase().includes(searchTerm))
+                    (a.session_id && a.session_id.toLowerCase().includes(searchTerm)) ||
+                    (a.sessionId && a.sessionId.toLowerCase().includes(searchTerm))
                 );
             }
             
@@ -773,40 +903,77 @@
                 filtered = filtered.filter(a => a.status === currentFilter);
             }
             
-            displayAssessments(filtered);
+            displayAllAssessments(filtered);
         }
 
-        function startNewAssessment(event) {
-            event.preventDefault();
+        function startNewAssessment() {
+            // Check usage limit first
+            const usageCount = parseInt(document.getElementById('usageCount').textContent);
+            const usageLimit = parseInt(document.getElementById('usageLimit').textContent);
+            
+            if (usageCount >= usageLimit) {
+                showAlert('You have reached your monthly assessment limit. Please contact support to increase your limit.', 'error');
+                return;
+            }
+            
             // Store clinic ID for the assessment
-            sessionStorage.setItem('clinicId', user.clinicId || user.id);
+            sessionStorage.setItem('clinicId', clinicId);
             sessionStorage.setItem('clinicName', user.clinicName || user.displayName);
+            
+            // Redirect to assessment page
             window.location.href = '/index.html';
         }
 
-        function showSection(section) {
+        function viewAssessment(sessionId) {
+            showAlert(`Assessment details for ${sessionId} - Feature coming soon`, 'info');
+            // TODO: Implement view assessment details
+        }
+
+        function downloadReport(sessionId) {
+            showAlert(`Download report for ${sessionId} - Feature coming soon`, 'info');
+            // TODO: Implement report download
+        }
+
+        function downloadAllReports() {
+            showAlert('Export functionality coming soon', 'info');
+            // TODO: Implement data export
+        }
+
+        function showSection(sectionName) {
+            // Update menu
             document.querySelectorAll('.menu-item').forEach(item => {
                 item.classList.remove('active');
-                if (item.dataset.section === section) {
+                if (item.dataset.section === sectionName) {
                     item.classList.add('active');
                 }
             });
+            
+            // Update breadcrumb
             document.querySelector('.breadcrumb').textContent = 
-                section.charAt(0).toUpperCase() + section.slice(1);
+                sectionName.charAt(0).toUpperCase() + sectionName.slice(1);
+            
+            // Show/hide sections
+            document.querySelectorAll('.section-content').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(`${sectionName}-section`).classList.add('active');
+            
+            // Reload data if going to assessments
+            if (sectionName === 'assessments') {
+                loadDashboard();
+            }
         }
 
-        function viewAssessment(id) {
-            console.log('Viewing assessment:', id);
-            alert('View assessment details coming soon');
-        }
-
-        function downloadReport(id) {
-            console.log('Downloading report:', id);
-            alert('Download report functionality coming soon');
-        }
-
-        function exportData() {
-            alert('Export functionality will be implemented');
+        function showAlert(message, type) {
+            const alertId = type === 'success' ? 'successAlert' : 
+                           type === 'error' ? 'errorAlert' : 'infoAlert';
+            const alert = document.getElementById(alertId);
+            alert.textContent = message;
+            alert.classList.add('show');
+            
+            setTimeout(() => {
+                alert.classList.remove('show');
+            }, 5000);
         }
 
         function logout() {
@@ -826,6 +993,16 @@
 
         // Refresh data every 60 seconds
         setInterval(loadDashboard, 60000);
+
+        // Check for returning from assessment
+        window.addEventListener('load', () => {
+            const assessmentCompleted = sessionStorage.getItem('assessmentCompleted');
+            if (assessmentCompleted) {
+                showAlert('Assessment completed successfully!', 'success');
+                sessionStorage.removeItem('assessmentCompleted');
+                loadDashboard();
+            }
+        });
     </script>
 </body>
 </html>
