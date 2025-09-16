@@ -12,7 +12,7 @@ const pool = new Pool({
 module.exports = {
     async saveSession(sessionData) {
         const query = `
-            INSERT INTO assessment_sessions 
+            INSERT INTO ai_agent_sessions 
             (session_id, practitioner_name, patient_name, patient_dob, patient_gender, status)
             VALUES ($1, $2, $3, $4, $5, $6)
             ON CONFLICT (session_id) 
@@ -42,7 +42,7 @@ module.exports = {
 
     async saveMessage(sessionId, messageType, messageText, phase) {
         const query = `
-            INSERT INTO assessment_messages 
+            INSERT INTO ai_agent_messages 
             (session_id, message_type, message_text, phase)
             VALUES ($1, $2, $3, $4)
             RETURNING *`;
@@ -58,7 +58,7 @@ module.exports = {
 
     async saveReport(reportData) {
         const query = `
-            INSERT INTO assessment_reports 
+            INSERT INTO ai_agent_reports 
             (session_id, report_content, symptoms, severity_score, therapy_code, therapy_name, supplement_recommendations)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING report_id`;
@@ -75,7 +75,7 @@ module.exports = {
             ]);
             
             await pool.query(
-                `UPDATE assessment_sessions 
+                `UPDATE ai_agent_sessions 
                  SET status = 'completed', 
                      completed_at = CURRENT_TIMESTAMP,
                      recommended_therapy_code = $1,
@@ -94,8 +94,8 @@ module.exports = {
     async getReport(reportId) {
         const query = `
             SELECT r.*, s.practitioner_name, s.patient_name, s.patient_dob, s.patient_gender
-            FROM assessment_reports r
-            JOIN assessment_sessions s ON r.session_id = s.session_id
+            FROM ai_agent_reports r
+            JOIN ai_agent_sessions s ON r.session_id = s.session_id
             WHERE r.report_id = $1`;
         
         try {
@@ -109,7 +109,7 @@ module.exports = {
 
     async getSessionHistory(practitionerName) {
         const query = `
-            SELECT * FROM assessment_sessions 
+            SELECT * FROM ai_agent_sessions 
             WHERE practitioner_name = $1 
             ORDER BY started_at DESC 
             LIMIT 50`;
