@@ -649,37 +649,39 @@
             // Show loading
             document.getElementById('loadingDiv').classList.add('show');
             
-            // This will be connected to actual API endpoints
-            // For now, showing placeholder data
-            setTimeout(() => {
-                document.getElementById('loadingDiv').classList.remove('show');
-                
-                // Update stats
-                document.getElementById('totalClinics').textContent = '3';
-                document.getElementById('activeClinics').textContent = '2';
-                document.getElementById('totalAssessments').textContent = '156';
-                document.getElementById('monthlyRevenue').textContent = '£2,450';
-                
-                // Load sample clinic data
-                const clinicsData = [
-                    {
-                        name: 'London Wellness Clinic',
-                        email: 'london@celloxen.com',
-                        status: 'active',
-                        assessments: 45,
-                        usage: '45/100'
+            try {
+                const response = await fetch('/api/getClinicStats', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
                     },
-                    {
-                        name: 'Manchester Health Centre',
-                        email: 'manchester@celloxen.com',
-                        status: 'trial',
-                        assessments: 12,
-                        usage: '12/100'
-                    }
-                ];
+                    body: JSON.stringify({
+                        role: 'super_admin'
+                    })
+                });
+
+                const stats = await response.json();
                 
-                displayClinics(clinicsData);
-            }, 1000);
+                // Update stats cards
+                document.getElementById('totalClinics').textContent = stats.totalClinics || '0';
+                document.getElementById('activeClinics').textContent = stats.activeClinics || '0';
+                document.getElementById('totalAssessments').textContent = stats.totalAssessments || '0';
+                
+                // Calculate monthly revenue (example: £30 per active clinic)
+                const monthlyRevenue = (stats.activeClinics || 0) * 30;
+                document.getElementById('monthlyRevenue').textContent = `£${monthlyRevenue}`;
+                
+                // Display clinics in table
+                if (stats.clinics && stats.clinics.length > 0) {
+                    displayClinics(stats.clinics);
+                }
+                
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            } finally {
+                document.getElementById('loadingDiv').classList.remove('show');
+            }
         }
 
         function displayClinics(clinics) {
@@ -688,17 +690,20 @@
             
             clinics.forEach(clinic => {
                 const row = document.createElement('tr');
+                const status = clinic.is_active ? 'active' : 'inactive';
+                const statusText = clinic.subscription_status || status;
+                
                 row.innerHTML = `
-                    <td>${clinic.name}</td>
+                    <td>${clinic.clinic_name || clinic.owner_name || 'N/A'}</td>
                     <td>${clinic.email}</td>
-                    <td><span class="status-badge ${clinic.status}">${clinic.status}</span></td>
-                    <td>${clinic.assessments}</td>
-                    <td>${clinic.usage}</td>
+                    <td><span class="status-badge ${status}">${statusText}</span></td>
+                    <td>${clinic.assessment_count || 0}</td>
+                    <td>${clinic.usage_count || 0}/${clinic.usage_limit || 100}</td>
                     <td>
                         <div class="action-buttons">
-                            <button class="btn-action btn-view" onclick="viewClinic('${clinic.email}')">View</button>
-                            <button class="btn-action btn-edit" onclick="editClinic('${clinic.email}')">Edit</button>
-                            <button class="btn-action btn-delete" onclick="deleteClinic('${clinic.email}')">Delete</button>
+                            <button class="btn-action btn-view" onclick="viewClinic(${clinic.id})">View</button>
+                            <button class="btn-action btn-edit" onclick="editClinic(${clinic.id})">Edit</button>
+                            <button class="btn-action btn-delete" onclick="deleteClinic(${clinic.id})">Delete</button>
                         </div>
                     </td>
                 `;
@@ -714,6 +719,33 @@
         function closeModal() {
             document.getElementById('clinicModal').classList.remove('show');
             document.getElementById('clinicForm').reset();
+        }
+
+        function viewClinic(id) {
+            console.log('View clinic:', id);
+            // Implement view functionality
+        }
+
+        function editClinic(id) {
+            console.log('Edit clinic:', id);
+            // Implement edit functionality
+        }
+
+        function deleteClinic(id) {
+            if (confirm('Are you sure you want to delete this clinic?')) {
+                console.log('Delete clinic:', id);
+                // Implement delete functionality
+            }
+        }
+
+        function searchClinics() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const rows = document.querySelectorAll('#clinicsTableBody tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
         }
 
         function logout() {
@@ -738,9 +770,12 @@
         document.getElementById('clinicForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             // Add clinic logic will be implemented
-            alert('Clinic functionality will be connected to API');
+            alert('Add clinic functionality coming soon');
             closeModal();
         });
+
+        // Refresh data every 30 seconds
+        setInterval(loadDashboard, 30000);
     </script>
 </body>
 </html>
