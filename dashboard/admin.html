@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Celloxen Admin Dashboard - Healthcare Management System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f2f5;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 260px;
+            height: 100vh;
+            background: linear-gradient(135deg, #5e72e4 0%, #825ee4 100%);
+            color: white;
+            overflow-y: auto;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .sidebar-header {
+            padding: 30px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar-header h2 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .sidebar-header p {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        .sidebar-menu {
+            padding: 20px 0;
+        }
+
+        .menu-item {
+            padding: 15px 25px;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: white;
+        }
+
+        .menu-item:hover, .menu-item.active {
+            background: rgba(255, 255, 255, 0.1);
+            border-left: 4px solid white;
+        }
+
+        .menu-item i {
+            margin-right: 12px;
+            font-size: 1.1rem;
+            width: 20px;
+            text-align: center;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 260px;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        /* Top Navigation */
+        .top-nav {
+            background: white;
+            padding: 20px 30px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .breadcrumb {
+            font-size: 1.4rem;
+            color: #2d3436;
+            font-weight: 600;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .user-info .user-name {
+            color: #495057;
+            font-weight: 500;
+        }
+
+        .logout-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: #c82333;
+            transform: translateY(-1px);
+        }
+
+        /* Dashboard Content */
+        .dashboard-content {
+            padding: 30px;
+        }
+
+        /* Stats Cards */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        .stat-card .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+        }
+
+        .stat-card.primary .stat-icon {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .stat-card.success .stat-icon {
+            background: linear-gradient(135deg, #48dbfb 0%, #0abde3 100%);
+            color: white;
+        }
+
+        .stat-card.warning .stat-icon {
+            background: linear-gradient(135deg, #feca57 0%, #ff9ff3 100%);
+            color: white;
+        }
+
+        .stat-card.danger .stat-icon {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+            color: white;
+        }
+
+        .stat-card .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2d3436;
+            margin-bottom: 5px;
+        }
+
+        .stat-card .stat-label {
+            color: #6c757d;
+            font-size: 0.95rem;
+        }
+
+        /* Table Section */
+        .table-section {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            margin-bottom: 30px;
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .table-header h3 {
+            color: #2d3436;
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        .btn-add {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-add:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .search-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .search-bar input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 2px solid #e1e5eb;
+            border-radius: 8px;
+            font-size: 0.95rem;
+        }
+
+        .search-bar input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .search-bar button {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        /* Table */
+        .data-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .data-table thead {
+            background: #f8f9fa;
+        }
+
+        .data-table th {
+            padding: 12px 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #495057;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .data-table td {
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+            color: #495057;
+        }
+
+        .data-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .status-badge.active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-badge.trial {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-badge.inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-action {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-view {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-edit {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-action:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            color: #2d3436;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #495057;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 15px;
+            border: 2px solid #e1e5eb;
+            border-radius: 8px;
+            font-size: 0.95rem;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 25px;
+        }
+
+        .modal-footer button {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-cancel {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-save {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        /* Loading Spinner */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 0;
+                overflow: hidden;
+            }
+
+            .sidebar.active {
+                width: 260px;
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .stats-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>CELLOXEN</h2>
+            <p>Admin Dashboard</p>
+        </div>
+        <div class="sidebar-menu">
+            <a href="#" class="menu-item active" data-section="overview">
+                <i>📊</i> Overview
+            </a>
+            <a href="#" class="menu-item" data-section="clinics">
+                <i>🏥</i> Clinics
+            </a>
+            <a href="#" class="menu-item" data-section="assessments">
+                <i>📋</i> Assessments
+            </a>
+            <a href="#" class="menu-item" data-section="reports">
+                <i>📈</i> Reports
+            </a>
+            <a href="#" class="menu-item" data-section="settings">
+                <i>⚙️</i> Settings
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Top Navigation -->
+        <div class="top-nav">
+            <h1 class="breadcrumb">Dashboard Overview</h1>
+            <div class="user-info">
+                <span class="user-name" id="userName">Administrator</span>
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <!-- Dashboard Content -->
+        <div class="dashboard-content">
+            <!-- Stats Cards -->
+            <div class="stats-row">
+                <div class="stat-card primary">
+                    <div class="stat-icon">🏥</div>
+                    <div class="stat-value" id="totalClinics">0</div>
+                    <div class="stat-label">Total Clinics</div>
+                </div>
+                <div class="stat-card success">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-value" id="activeClinics">0</div>
+                    <div class="stat-label">Active Clinics</div>
+                </div>
+                <div class="stat-card warning">
+                    <div class="stat-icon">📋</div>
+                    <div class="stat-value" id="totalAssessments">0</div>
+                    <div class="stat-label">Total Assessments</div>
+                </div>
+                <div class="stat-card danger">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-value" id="monthlyRevenue">£0</div>
+                    <div class="stat-label">Monthly Revenue</div>
+                </div>
+            </div>
+
+            <!-- Clinics Table -->
+            <div class="table-section">
+                <div class="table-header">
+                    <h3>Clinic Management</h3>
+                    <button class="btn-add" onclick="openAddClinicModal()">+ Add New Clinic</button>
+                </div>
+                
+                <div class="search-bar">
+                    <input type="text" id="searchInput" placeholder="Search clinics...">
+                    <button onclick="searchClinics()">Search</button>
+                </div>
+
+                <div class="loading" id="loadingDiv">
+                    <div class="spinner"></div>
+                    <p>Loading clinics...</p>
+                </div>
+
+                <table class="data-table" id="clinicsTable">
+                    <thead>
+                        <tr>
+                            <th>Clinic Name</th>
+                            <th>Email</th>
+                            <th>Status</th>
+                            <th>Assessments</th>
+                            <th>Usage</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="clinicsTableBody">
+                        <!-- Data will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Clinic Modal -->
+    <div class="modal" id="clinicModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Add New Clinic</h3>
+            </div>
+            <form id="clinicForm">
+                <div class="form-group">
+                    <label for="clinicName">Clinic Name</label>
+                    <input type="text" id="clinicName" required>
+                </div>
+                <div class="form-group">
+                    <label for="clinicEmail">Email</label>
+                    <input type="email" id="clinicEmail" required>
+                </div>
+                <div class="form-group">
+                    <label for="ownerName">Owner Name</label>
+                    <input type="text" id="ownerName" required>
+                </div>
+                <div class="form-group">
+                    <label for="clinicPhone">Phone</label>
+                    <input type="tel" id="clinicPhone">
+                </div>
+                <div class="form-group">
+                    <label for="clinicAddress">Address</label>
+                    <textarea id="clinicAddress" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="subscriptionStatus">Status</label>
+                    <select id="subscriptionStatus">
+                        <option value="trial">Trial</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn-save">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Check authentication
+        const token = localStorage.getItem('token');
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+        if (!token || user.role !== 'super_admin') {
+            window.location.href = '/login.html';
+        }
+
+        // Set user name
+        document.getElementById('userName').textContent = user.displayName || 'Administrator';
+
+        // Load initial data
+        loadDashboard();
+
+        async function loadDashboard() {
+            // Show loading
+            document.getElementById('loadingDiv').classList.add('show');
+            
+            // This will be connected to actual API endpoints
+            // For now, showing placeholder data
+            setTimeout(() => {
+                document.getElementById('loadingDiv').classList.remove('show');
+                
+                // Update stats
+                document.getElementById('totalClinics').textContent = '3';
+                document.getElementById('activeClinics').textContent = '2';
+                document.getElementById('totalAssessments').textContent = '156';
+                document.getElementById('monthlyRevenue').textContent = '£2,450';
+                
+                // Load sample clinic data
+                const clinicsData = [
+                    {
+                        name: 'London Wellness Clinic',
+                        email: 'london@celloxen.com',
+                        status: 'active',
+                        assessments: 45,
+                        usage: '45/100'
+                    },
+                    {
+                        name: 'Manchester Health Centre',
+                        email: 'manchester@celloxen.com',
+                        status: 'trial',
+                        assessments: 12,
+                        usage: '12/100'
+                    }
+                ];
+                
+                displayClinics(clinicsData);
+            }, 1000);
+        }
+
+        function displayClinics(clinics) {
+            const tbody = document.getElementById('clinicsTableBody');
+            tbody.innerHTML = '';
+            
+            clinics.forEach(clinic => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${clinic.name}</td>
+                    <td>${clinic.email}</td>
+                    <td><span class="status-badge ${clinic.status}">${clinic.status}</span></td>
+                    <td>${clinic.assessments}</td>
+                    <td>${clinic.usage}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn-action btn-view" onclick="viewClinic('${clinic.email}')">View</button>
+                            <button class="btn-action btn-edit" onclick="editClinic('${clinic.email}')">Edit</button>
+                            <button class="btn-action btn-delete" onclick="deleteClinic('${clinic.email}')">Delete</button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function openAddClinicModal() {
+            document.getElementById('modalTitle').textContent = 'Add New Clinic';
+            document.getElementById('clinicModal').classList.add('show');
+        }
+
+        function closeModal() {
+            document.getElementById('clinicModal').classList.remove('show');
+            document.getElementById('clinicForm').reset();
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/login.html';
+        }
+
+        // Handle menu navigation
+        document.querySelectorAll('.menu-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+                const section = item.dataset.section;
+                document.querySelector('.breadcrumb').textContent = 
+                    'Dashboard ' + section.charAt(0).toUpperCase() + section.slice(1);
+            });
+        });
+
+        // Handle form submission
+        document.getElementById('clinicForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            // Add clinic logic will be implemented
+            alert('Clinic functionality will be connected to API');
+            closeModal();
+        });
+    </script>
+</body>
+</html>
