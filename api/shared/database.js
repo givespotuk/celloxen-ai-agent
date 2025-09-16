@@ -121,5 +121,37 @@ module.exports = {
             console.error('Error fetching history:', error);
             return [];
         }
+    },
+
+    // NEW FUNCTION: Get supplements for a therapy code
+    async getSupplementsForTherapy(therapyCode) {
+        const query = `
+            SELECT supplement_name, dosage, duration, benefits 
+            FROM ai_agent_supplements 
+            WHERE therapy_codes LIKE $1
+            ORDER BY supplement_name`;
+        
+        try {
+            const result = await pool.query(query, [`%${therapyCode}%`]);
+            return result.rows;
+        } catch (error) {
+            console.error('Error fetching supplements:', error);
+            return [];
+        }
+    },
+
+    // NEW FUNCTION: Get all supplements
+    async getAllSupplements() {
+        const query = `
+            SELECT * FROM ai_agent_supplements 
+            ORDER BY supplement_name`;
+        
+        try {
+            const result = await pool.query(query);
+            return result.rows;
+        } catch (error) {
+            console.error('Error fetching all supplements:', error);
+            return [];
+        }
     }
 };
