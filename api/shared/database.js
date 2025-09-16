@@ -10,7 +10,6 @@ const pool = new Pool({
 });
 
 module.exports = {
-    // Save assessment session
     async saveSession(sessionData) {
         const query = `
             INSERT INTO assessment_sessions 
@@ -37,11 +36,10 @@ module.exports = {
             return result.rows[0];
         } catch (error) {
             console.error('Database error:', error);
-            throw error;
+            return null;
         }
     },
 
-    // Save message
     async saveMessage(sessionId, messageType, messageText, phase) {
         const query = `
             INSERT INTO assessment_messages 
@@ -54,10 +52,10 @@ module.exports = {
             return result.rows[0];
         } catch (error) {
             console.error('Error saving message:', error);
+            return null;
         }
     },
 
-    // Save report
     async saveReport(reportData) {
         const query = `
             INSERT INTO assessment_reports 
@@ -76,7 +74,6 @@ module.exports = {
                 reportData.supplements
             ]);
             
-            // Update session status
             await pool.query(
                 `UPDATE assessment_sessions 
                  SET status = 'completed', 
@@ -90,11 +87,10 @@ module.exports = {
             return result.rows[0].report_id;
         } catch (error) {
             console.error('Error saving report:', error);
-            throw error;
+            return null;
         }
     },
 
-    // Get report by ID
     async getReport(reportId) {
         const query = `
             SELECT r.*, s.practitioner_name, s.patient_name, s.patient_dob, s.patient_gender
@@ -111,7 +107,6 @@ module.exports = {
         }
     },
 
-    // Get session history
     async getSessionHistory(practitionerName) {
         const query = `
             SELECT * FROM assessment_sessions 
