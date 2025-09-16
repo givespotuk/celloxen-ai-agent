@@ -137,7 +137,7 @@
             }
 
             try {
-                const response = await fetch('/api/auth/setup-password', {
+                const response = await fetch('/api/setup-password', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -172,7 +172,7 @@
 
             for (const email of accounts) {
                 try {
-                    const response = await fetch('/api/auth/setup-password', {
+                    const response = await fetch('/api/setup-password', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
