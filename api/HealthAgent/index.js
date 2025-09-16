@@ -1,4 +1,3 @@
-const fetch = require('node-fetch');
 const { v4: uuidv4 } = require('uuid');
 
 // Therapy codes from Celloxen guide
@@ -44,298 +43,257 @@ const THERAPY_CODES = {
     ]
 };
 
-// Contraindications
-const CONTRAINDICATIONS = [
-    "pacemaker or implanted electronic device",
-    "pregnancy (especially first trimester)",
-    "active cancer treatment",
-    "severe heart arrhythmias",
-    "recent stroke (within 6 weeks)",
-    "recent heart attack (within 6 weeks)"
-];
-
-// Session storage (in production, use database)
+// Session storage
 const sessions = {};
 
 module.exports = async function (context, req) {
     context.log('Health Agent API called');
     
-    const action = req.query.action || req.body?.action || 'chat';
+    const action = req.query.action || req.body?.action || 'test';
     const sessionId = req.body?.sessionId || uuidv4();
     const message = req.body?.message || '';
     
-    // Initialize or get session
+    // Initialize session if needed
     if (!sessions[sessionId]) {
         sessions[sessionId] = {
             id: sessionId,
             phase: 'greeting',
-            conversationHistory: [],
             practitionerName: null,
             patientData: {},
-            assessmentData: {},
-            contraindications: [],
-            recommendedTherapy: null,
-            report: null
+            symptoms: [],
+            contraindictionChecks: 0,
+            hasContraindications: false
         };
     }
     
     const session = sessions[sessionId];
     
     try {
-        let response = '';
+        let responseBody = {};
         
-        if (action === 'start') {
-            session.phase = 'greeting';
-            response = await callClaude(session, "greeting", "");
-        } else if (action === 'chat') {
-            // Add user message to history
-            session.conversationHistory.push({
-                role: 'user',
-                content: message
-            });
-            
-            // Process based on current phase
-            response = await processPhase(session, message);
-            
-            // Add assistant response to history
-            session.conversationHistory.push({
-                role: 'assistant',
-                content: response
-            });
-        } else if (action === 'report') {
-            response = generateReport(session);
-        } else if (action === 'restart') {
-            delete sessions[sessionId];
-            response = "Assessment restarted. Starting new session...";
+        switch(action) {
+            case 'test':
+                responseBody = {
+                    success: true,
+                    message: "✅ AI Health Agent API is working!",
+                    timestamp: new Date().toISOString(),
+                    version: "1.0.0",
+                    status: "Connected to Azure Functions"
+                };
+                break;
+                
+            case 'start':
+                session.phase = 'greeting';
+                responseBody = {
+                    success: true,
+                    sessionId: sessionId,
+                    message: "Welcome to Celloxen Health Assessment. I'm your AI Health Agent. May I have your name please, practitioner?",
+                    phase: "greeting",
+                    timestamp: new Date().toISOString()
+                };
+                break;
+                
+            case 'chat':
+                responseBody = processChat(session, message);
+                responseBody.sessionId = sessionId;
+                break;
+                
+            default:
+                responseBody = {
+                    success: true,
+                    message: "Unknown action. Available actions: test, start, chat"
+                };
         }
         
         context.res = {
             status: 200,
             headers: { 'Content-Type': 'application/json' },
-            body: {
-                success: true,
-                sessionId: sessionId,
-                phase: session.phase,
-                response: response,
-                report: session.report
-            }
+            body: responseBody
         };
         
     } catch (error) {
         context.log.error('Error:', error);
         context.res = {
             status: 500,
-            body: {
-                success: false,
-                error: error.message
+            headers: { 'Content-Type': 'application/json' },
+            body: { 
+                success: false, 
+                error: error.message || 'An error occurred'
             }
         };
     }
 };
 
-async function callClaude(session, phase, userMessage) {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    const apiUrl = 'https://api.anthropic.com/v1/messages';
-    
-    const systemPrompt = buildSystemPrompt(phase, session);
-    const userPrompt = buildUserPrompt(phase, userMessage, session);
-    
-    try {
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': apiKey,
-                'anthropic-version': '2023-06-01'
-            },
-            body: JSON.stringify({
-                model: 'claude-3-haiku-20240307',
-                max_tokens: 1000,
-                messages: [
-                    ...session.conversationHistory,
-                    { role: 'user', content: userPrompt }
-                ],
-                system: systemPrompt
-            })
-        });
-        
-        const data = await response.json();
-        return data.content[0].text;
-        
-    } catch (error) {
-        console.error('Claude API error:', error);
-        return getFallbackResponse(phase);
-    }
-}
-
-function buildSystemPrompt(phase, session) {
-    let basePrompt = `You are an AI Health Assessment Agent for Celloxen Health Therapy clinic. You are conducting a holistic health assessment for practitioners to use with their patients.
-
-Current assessment phase: ${phase}
-Practitioner: ${session.practitionerName || 'Not yet provided'}
-Patient: ${session.patientData.name || 'Not yet registered'}
-
-Available Celloxen therapies: ${JSON.stringify(THERAPY_CODES)}
-Contraindications to check: ${JSON.stringify(CONTRAINDICATIONS)}
-
-Your role is to:
-1. Guide the practitioner through patient assessment
-2. Screen for contraindications
-3. Identify suitable Celloxen therapy based on symptoms
-4. Generate comprehensive health reports
-5. Recommend appropriate supplements
-
-Be professional, thorough, and empathetic. Focus on holistic health assessment within the scope of available therapies.`;
-
-    return basePrompt;
-}
-
-function buildUserPrompt(phase, userMessage, session) {
-    switch(phase) {
-        case 'greeting':
-            return "Start the assessment by greeting the practitioner warmly, ask for their name, and ask if they want to conduct a health assessment for a patient.";
-        
-        case 'practitioner_name':
-            return `The practitioner said: "${userMessage}". Extract their name, welcome them by name, and ask if they want to conduct a health assessment for a patient.`;
-        
-        case 'patient_registration':
-            return "Ask for the patient's full name, date of birth, and gender. Be clear that you need all three pieces of information.";
-        
-        case 'ready_check':
-            return "Confirm you're ready to conduct a holistic health diagnosis and ask if the practitioner is ready to begin.";
-        
-        case 'contraindications':
-            return `Check each contraindication one by one. Current checking: ${session.currentContraindication || 'first one'}. Ask clearly about: pacemaker/implanted devices, pregnancy, active cancer treatment, severe arrhythmias, recent stroke or heart attack.`;
-        
-        case 'health_assessment':
-            return `Based on user response: "${userMessage}", continue the health assessment. Ask about symptoms related to: stress/anxiety/sleep, kidney/urinary issues, cardiovascular health, joint pain/arthritis, circulation, digestive/energy, diabetes, or general wellness. Be thorough but conversational.`;
-        
-        case 'therapy_selection':
-            return `Based on all collected symptoms: ${JSON.stringify(session.assessmentData)}, determine the most suitable Celloxen therapy from the available options and explain why.`;
-        
-        default:
-            return userMessage;
-    }
-}
-
-async function processPhase(session, message) {
+function processChat(session, message) {
     const lowerMessage = message.toLowerCase();
     
     switch(session.phase) {
         case 'greeting':
-            session.phase = 'practitioner_name';
-            return await callClaude(session, 'practitioner_name', message);
-        
-        case 'practitioner_name':
             // Extract practitioner name
-            session.practitionerName = extractName(message);
+            session.practitionerName = extractName(message) || message;
+            session.phase = 'confirm_assessment';
+            return {
+                success: true,
+                response: `Thank you, ${session.practitionerName}. Would you like to conduct a health assessment for a patient today?`,
+                phase: "confirm_assessment"
+            };
             
-            if (lowerMessage.includes('yes') || lowerMessage.includes('conduct') || lowerMessage.includes('assessment')) {
+        case 'confirm_assessment':
+            if (lowerMessage.includes('yes')) {
                 session.phase = 'patient_registration';
-                return await callClaude(session, 'patient_registration', message);
+                return {
+                    success: true,
+                    response: "Excellent! Please provide the patient's full name, date of birth, and gender.",
+                    phase: "patient_registration"
+                };
+            } else {
+                return {
+                    success: true,
+                    response: "No problem. When you're ready to conduct an assessment, just let me know.",
+                    phase: "confirm_assessment"
+                };
             }
-            return "Would you like to conduct a health assessment for a patient today?";
-        
+            
         case 'patient_registration':
-            // Parse patient data
+            // Simple parsing - in production would be more sophisticated
             const patientInfo = extractPatientInfo(message);
-            if (patientInfo.name && patientInfo.dob && patientInfo.gender) {
+            if (patientInfo.name) {
                 session.patientData = patientInfo;
                 session.phase = 'ready_check';
-                return `Thank you. I have registered:\nPatient: ${patientInfo.name}\nDate of Birth: ${patientInfo.dob}\nGender: ${patientInfo.gender}\n\nI'm ready to conduct a holistic health diagnosis. Shall we begin?`;
+                return {
+                    success: true,
+                    response: `Thank you. I have registered:\nPatient: ${patientInfo.name}\nDate of Birth: ${patientInfo.dob || 'Please provide'}\nGender: ${patientInfo.gender || 'Please provide'}\n\nI'm ready to conduct a holistic health diagnosis. Shall we begin?`,
+                    phase: "ready_check"
+                };
             }
-            return "Please provide the patient's full name, date of birth, and gender.";
-        
+            return {
+                success: true,
+                response: "Please provide the patient's full name, date of birth (DD/MM/YYYY), and gender (Male/Female).",
+                phase: "patient_registration"
+            };
+            
         case 'ready_check':
-            if (lowerMessage.includes('yes') || lowerMessage.includes('ready') || lowerMessage.includes('begin')) {
+            if (lowerMessage.includes('yes') || lowerMessage.includes('begin')) {
                 session.phase = 'contraindications';
-                session.contraindicationIndex = 0;
-                return `Before we begin, I need to check for safety contraindications.\n\nDoes the patient have any of the following:\n1. A pacemaker or any implanted electronic device?`;
+                session.contraindictionChecks = 1;
+                return {
+                    success: true,
+                    response: "Before we begin, I need to check for safety contraindications.\n\n1. Does the patient have a pacemaker or any implanted electronic device?",
+                    phase: "contraindications"
+                };
             }
-            return "Please confirm when you're ready to begin the assessment.";
-        
+            return {
+                success: true,
+                response: "Please confirm when you're ready to begin the assessment.",
+                phase: "ready_check"
+            };
+            
         case 'contraindications':
-            return handleContraindications(session, message);
-        
+            return handleContraindications(session, lowerMessage);
+            
         case 'health_assessment':
             return handleHealthAssessment(session, message);
-        
-        case 'therapy_selection':
-            const therapy = selectTherapy(session);
-            session.recommendedTherapy = therapy;
-            session.phase = 'report_generation';
-            return generateReport(session);
-        
-        case 'report_generation':
-            if (lowerMessage.includes('close') || lowerMessage.includes('end')) {
-                return "Thank you for using Celloxen Health Assessment. Session ended.";
-            }
+            
+        case 'generate_report':
+            const report = generateReport(session);
+            return {
+                success: true,
+                response: report,
+                phase: "report_complete",
+                report: report
+            };
+            
+        case 'report_complete':
             if (lowerMessage.includes('restart') || lowerMessage.includes('new')) {
-                session.phase = 'greeting';
-                return "Starting new assessment...";
+                // Reset session
+                sessions[session.id] = {
+                    id: session.id,
+                    phase: 'greeting',
+                    practitionerName: null,
+                    patientData: {},
+                    symptoms: [],
+                    contraindictionChecks: 0,
+                    hasContraindications: false
+                };
+                return {
+                    success: true,
+                    response: "Starting new assessment. May I have your name please, practitioner?",
+                    phase: "greeting"
+                };
+            } else if (lowerMessage.includes('close') || lowerMessage.includes('end')) {
+                return {
+                    success: true,
+                    response: "Thank you for using Celloxen Health Assessment. Session ended.",
+                    phase: "ended"
+                };
             }
-            return "Report generated. You can close this assessment or start a new one.";
-        
+            return {
+                success: true,
+                response: "Report complete. You can 'restart' for a new assessment or 'close' to end.",
+                phase: "report_complete"
+            };
+            
         default:
-            return await callClaude(session, session.phase, message);
+            return {
+                success: true,
+                response: "I'm ready to help with the health assessment. Please provide your response.",
+                phase: session.phase
+            };
     }
 }
 
 function handleContraindications(session, message) {
-    const lowerMessage = message.toLowerCase();
-    const contraindicationsList = [
+    const contraindications = [
         "pacemaker or implanted electronic device",
-        "pregnancy",
+        "pregnancy (especially first trimester)",
         "active cancer treatment",
         "severe heart arrhythmias",
         "recent stroke (within 6 weeks)",
         "recent heart attack (within 6 weeks)"
     ];
     
-    if (!session.contraindicationIndex) {
-        session.contraindicationIndex = 0;
-    }
-    
-    // Record answer for current contraindication
-    if (lowerMessage.includes('yes')) {
-        session.contraindications.push(contraindicationsList[session.contraindicationIndex]);
-        
-        // Check if doctor's agreement is provided
-        if (lowerMessage.includes('doctor') && lowerMessage.includes('agree')) {
-            // Continue with doctor's agreement
-        } else {
-            return "This is a contraindication. Does the patient have written agreement from their doctor to proceed with this therapy? If not, please refer the patient to their doctor first. Type 'yes with doctor agreement' to continue or 'no' to stop.";
+    if (message.includes('yes')) {
+        if (!message.includes('doctor') || !message.includes('agreement')) {
+            session.hasContraindications = true;
+            return {
+                success: true,
+                response: "This is a contraindication. Does the patient have written agreement from their doctor to proceed? Please answer 'yes with doctor agreement' or 'no'.",
+                phase: "contraindications"
+            };
         }
     }
     
-    // Check if this is a stop condition
-    if (lowerMessage.includes('no') && session.contraindications.length > 0 && !lowerMessage.includes('doctor')) {
-        session.phase = 'terminated';
-        return "For patient safety, this assessment cannot continue without doctor's approval. Please refer the patient to their doctor. This chat will now be terminated for safety reasons.";
+    if (message.includes('no') && session.hasContraindications && !message.includes('agreement')) {
+        return {
+            success: true,
+            response: "For patient safety, this assessment cannot continue without doctor's approval. Please refer the patient to their doctor. This session will now end for safety reasons.",
+            phase: "terminated"
+        };
     }
     
     // Move to next contraindication
-    session.contraindicationIndex++;
+    session.contraindictionChecks++;
     
-    if (session.contraindicationIndex < contraindicationsList.length) {
-        return `${session.contraindicationIndex + 1}. Does the patient have ${contraindicationsList[session.contraindicationIndex]}?`;
+    if (session.contraindictionChecks <= contraindications.length) {
+        return {
+            success: true,
+            response: `${session.contraindictionChecks}. Does the patient have ${contraindications[session.contraindictionChecks - 1]}?`,
+            phase: "contraindications"
+        };
     } else {
         // All contraindications checked
         session.phase = 'health_assessment';
-        session.assessmentQuestionIndex = 0;
-        return "Thank you for confirming. No concerning contraindications found. Now let's assess the patient's health concerns.\n\nWhat is the patient's primary health concern or symptom they're experiencing?";
+        session.questionIndex = 0;
+        return {
+            success: true,
+            response: "Thank you. No concerning contraindications found.\n\nNow let's assess the patient's health concerns. What is the patient's primary health complaint or symptom?",
+            phase: "health_assessment"
+        };
     }
 }
 
 function handleHealthAssessment(session, message) {
-    // Store symptom data
-    if (!session.assessmentData.symptoms) {
-        session.assessmentData.symptoms = [];
-    }
-    session.assessmentData.symptoms.push(message);
-    
-    // Assessment questions flow
-    const assessmentQuestions = [
+    const questions = [
         "How long has the patient been experiencing this?",
         "On a scale of 1-10, how severe is this condition?",
         "Are there any other related symptoms?",
@@ -346,25 +304,35 @@ function handleHealthAssessment(session, message) {
         "Does the patient have diabetes or blood sugar issues?"
     ];
     
-    if (!session.assessmentQuestionIndex) {
-        session.assessmentQuestionIndex = 0;
-    }
+    // Store symptom
+    session.symptoms.push(message);
     
-    session.assessmentQuestionIndex++;
+    if (!session.questionIndex) session.questionIndex = 0;
     
-    if (session.assessmentQuestionIndex < assessmentQuestions.length) {
-        return assessmentQuestions[session.assessmentQuestionIndex];
+    if (session.questionIndex < questions.length) {
+        const nextQuestion = questions[session.questionIndex];
+        session.questionIndex++;
+        return {
+            success: true,
+            response: nextQuestion,
+            phase: "health_assessment"
+        };
     } else {
-        // Assessment complete, select therapy
-        session.phase = 'therapy_selection';
-        return processTherapySelection(session);
+        // Assessment complete
+        const therapy = selectTherapy(session);
+        session.recommendedTherapy = therapy;
+        session.phase = 'generate_report';
+        
+        return {
+            success: true,
+            response: `Based on the assessment, I recommend: ${therapy.name} (Code: ${therapy.code})\n\nGenerating comprehensive report now...`,
+            phase: "generate_report"
+        };
     }
 }
 
 function selectTherapy(session) {
-    const symptoms = session.assessmentData.symptoms.join(' ').toLowerCase();
-    
-    // Score each therapy based on symptom matching
+    const symptoms = session.symptoms.join(' ').toLowerCase();
     let bestMatch = null;
     let highestScore = 0;
     
@@ -383,26 +351,23 @@ function selectTherapy(session) {
         }
     }
     
-    // Default to detoxification/wellness if no specific match
+    // Default to wellness if no match
     if (!bestMatch || highestScore < 10) {
-        bestMatch = {
-            code: '801',
-            name: 'Total Wellness Package (Detoxification)',
-            description: 'Comprehensive wellness and detoxification therapy'
-        };
+        bestMatch = THERAPY_CODES.WELLNESS[0];
     }
     
     return bestMatch;
 }
 
 function generateReport(session) {
-    const therapy = session.recommendedTherapy || selectTherapy(session);
+    const therapy = session.recommendedTherapy;
     const patient = session.patientData;
     const date = new Date().toLocaleDateString();
     
-    const report = `
+    return `
+========================================
 CELLOXEN HEALTH ASSESSMENT REPORT
-==================================
+========================================
 
 PATIENT INFORMATION
 -------------------
@@ -414,37 +379,16 @@ Practitioner: ${session.practitionerName}
 
 CHIEF COMPLAINTS
 ----------------
-${session.assessmentData.symptoms ? session.assessmentData.symptoms[0] : 'General wellness check'}
+${session.symptoms[0] || 'General wellness check'}
 
 CURRENT HEALTH STATE
 --------------------
-Based on the assessment, the patient presents with:
-${session.assessmentData.symptoms ? session.assessmentData.symptoms.join('\n- ') : 'No specific symptoms reported'}
-
-DIAGNOSTIC RATIONALE
---------------------
-After thorough holistic assessment, considering the patient's symptoms and health history, 
-the following therapy is recommended based on symptom correlation and expected therapeutic benefits.
+${session.symptoms.join('\n')}
 
 RECOMMENDED THERAPY
 -------------------
 Therapy Code: ${therapy.code}
 Therapy Name: ${therapy.name}
-
-THERAPY OVERVIEW
-----------------
-This therapy uses bioelectromagnetic fields to stimulate specific acupoints, promoting:
-- Natural healing processes
-- Cellular energy balance
-- Improved circulation
-- Symptom relief
-
-ANTICIPATED BENEFITS
---------------------
-Week 1-2: Initial symptom relief
-Week 3-4: Progressive improvement
-Week 5-6: Significant enhancement
-Week 7-8: Sustained benefits
 
 TREATMENT PROTOCOL
 ------------------
@@ -455,52 +399,38 @@ Total Sessions: 16-24 sessions
 
 SUPPLEMENT RECOMMENDATION
 -------------------------
-Based on the patient's condition, consider:
-- Omega-3 fatty acids for inflammation support
-- Vitamin D for immune support
-- Magnesium for muscle and nerve function
-- Probiotics for digestive health
+- Omega-3 fatty acids
+- Vitamin D
+- Magnesium
+- Probiotics
 
-NOTES
------
-This assessment is complementary to conventional medical care.
-Regular monitoring and adjustment of treatment plan recommended.
-
-Practitioner Signature: _____________________
-Date: ${date}
-`;
-    
-    session.report = report;
-    session.phase = 'report_generation';
-    
-    return report;
+========================================
+Report Complete - ${date}
+========================================`;
 }
 
 function extractName(message) {
-    // Simple name extraction - could be improved with NLP
     const words = message.split(' ');
     for (let word of words) {
-        if (word.length > 2 && word[0] === word[0].toUpperCase()) {
+        if (word.length > 2 && word[0] === word[0].toUpperCase() && /^[A-Za-z]+$/.test(word)) {
             return word;
         }
     }
-    return message.trim();
+    return null;
 }
 
 function extractPatientInfo(message) {
-    // Parse patient information from message
-    // This is simplified - in production use better parsing
     const info = {};
     
-    // Try to extract name (capitalized words)
-    const nameMatch = message.match(/([A-Z][a-z]+ [A-Z][a-z]+)/);
-    if (nameMatch) info.name = nameMatch[1];
+    // Extract name (capitalized words)
+    const nameMatch = message.match(/([A-Z][a-z]+ ?[A-Z]?[a-z]*)/);
+    if (nameMatch) info.name = nameMatch[0];
     
-    // Try to extract date
+    // Extract date
     const dateMatch = message.match(/(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})/);
-    if (dateMatch) info.dob = dateMatch[1];
+    if (dateMatch) info.dob = dateMatch[0];
     
-    // Try to extract gender
+    // Extract gender
     if (message.toLowerCase().includes('male') && !message.toLowerCase().includes('female')) {
         info.gender = 'Male';
     } else if (message.toLowerCase().includes('female')) {
@@ -508,23 +438,4 @@ function extractPatientInfo(message) {
     }
     
     return info;
-}
-
-function processTherapySelection(session) {
-    const therapy = selectTherapy(session);
-    session.recommendedTherapy = therapy;
-    
-    return `Based on the assessment, I recommend:\n\n${therapy.name} (Code: ${therapy.code})\n\nThis therapy will help address the patient's symptoms through targeted bioelectromagnetic stimulation.\n\nWould you like me to generate the complete assessment report now?`;
-}
-
-function getFallbackResponse(phase) {
-    const fallbacks = {
-        'greeting': "Welcome to Celloxen Health Assessment. I'm your AI Health Agent. May I have your name, and would you like to conduct a health assessment for a patient?",
-        'patient_registration': "Please provide the patient's full name, date of birth, and gender.",
-        'contraindications': "I need to check for safety contraindications. Does the patient have any pacemakers or implanted devices?",
-        'health_assessment': "What are the main health concerns the patient is experiencing?",
-        'report_generation': "Assessment complete. Report has been generated."
-    };
-    
-    return fallbacks[phase] || "How can I help you with the health assessment?";
 }
