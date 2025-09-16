@@ -408,6 +408,7 @@
             color: #155724;
         }
 
+        .assessment-status.in_progress,
         .assessment-status.in-progress {
             background: #fff3cd;
             color: #856404;
@@ -535,7 +536,7 @@
         <div class="top-nav">
             <h1 class="breadcrumb">Dashboard</h1>
             <div class="top-actions">
-                <a href="/index.html" class="start-assessment-btn">+ New Assessment</a>
+                <a href="/index.html" class="start-assessment-btn" onclick="startNewAssessment(event)">+ New Assessment</a>
                 <div class="user-info">
                     <span class="user-name" id="userName">Clinic User</span>
                     <button class="logout-btn" onclick="logout()">Logout</button>
@@ -564,7 +565,7 @@
                 </div>
                 <div class="stat-card usage">
                     <div class="stat-icon">📊</div>
-                    <div class="stat-value"><span id="usageCount">0</span>/100</div>
+                    <div class="stat-value"><span id="usageCount">0</span>/<span id="usageLimit">100</span></div>
                     <div class="stat-label">Monthly Usage</div>
                     <div class="progress-bar">
                         <div class="progress-fill" id="usageProgress" style="width: 0%"></div>
@@ -576,7 +577,7 @@
             <div class="quick-actions">
                 <h3>Quick Actions</h3>
                 <div class="action-buttons-grid">
-                    <a href="/index.html" class="action-btn">
+                    <a href="#" class="action-btn" onclick="startNewAssessment(event)">
                         <i>➕</i>
                         Start New Assessment
                     </a>
@@ -604,7 +605,7 @@
                 <div class="table-tabs">
                     <button class="tab-btn active" onclick="filterAssessments('all')">All</button>
                     <button class="tab-btn" onclick="filterAssessments('completed')">Completed</button>
-                    <button class="tab-btn" onclick="filterAssessments('in-progress')">In Progress</button>
+                    <button class="tab-btn" onclick="filterAssessments('in_progress')">In Progress</button>
                 </div>
 
                 <div class="search-filter-bar">
@@ -637,7 +638,7 @@
                     <i>📋</i>
                     <h4>No Assessments Yet</h4>
                     <p>Start your first assessment to see it here</p>
-                    <a href="/index.html" class="start-assessment-btn">Start Assessment</a>
+                    <a href="#" class="start-assessment-btn" onclick="startNewAssessment(event)">Start Assessment</a>
                 </div>
             </div>
         </div>
@@ -653,8 +654,11 @@
         }
 
         // Set clinic info
-        document.getElementById('clinicNameDisplay').textContent = user.clinicName || 'Clinic';
+        document.getElementById('clinicNameDisplay').textContent = user.clinicName || user.displayName || 'Clinic';
         document.getElementById('userName').textContent = user.displayName || 'Clinic User';
+
+        let currentFilter = 'all';
+        let allAssessments = [];
 
         // Load initial data
         loadDashboard();
@@ -663,78 +667,121 @@
             // Show loading
             document.getElementById('loadingDiv').classList.add('show');
             
-            // Simulate loading data - will connect to actual API
-            setTimeout(() => {
-                document.getElementById('loadingDiv').classList.remove('show');
+            try {
+                const response = await fetch('/api/getClinicStats', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({
+                        clinicId: user.clinicId || user.id,
+                        role: 'clinic'
+                    })
+                });
+
+                const stats = await response.json();
                 
                 // Update stats
-                document.getElementById('totalPatients').textContent = '24';
-                document.getElementById('totalAssessments').textContent = '45';
-                document.getElementById('pendingReports').textContent = '2';
-                document.getElementById('usageCount').textContent = '45';
+                document.getElementById('totalPatients').textContent = stats.totalPatients || '0';
+                document.getElementById('totalAssessments').textContent = stats.totalAssessments || '0';
+                document.getElementById('pendingReports').textContent = stats.pendingReports || '0';
+                document.getElementById('usageCount').textContent = stats.usageCount || '0';
+                document.getElementById('usageLimit').textContent = stats.usageLimit || '100';
                 
-                // Update usage progress
-                const usage = (45 / 100) * 100;
-                document.getElementById('usageProgress').style.width = usage + '%';
+                // Update usage progress bar
+                const usage = ((stats.usageCount || 0) / (stats.usageLimit || 100)) * 100;
+                document.getElementById('usageProgress').style.width = Math.min(usage, 100) + '%';
                 
-                // Load sample assessment data
-                const assessmentsData = [
-                    {
-                        date: '2025-09-16',
-                        patient: 'John Smith',
-                        id: 'AS-001',
-                        status: 'completed',
-                        therapy: 'Sleep Quality Enhancement'
-                    },
-                    {
-                        date: '2025-09-16',
-                        patient: 'Mary Johnson',
-                        id: 'AS-002',
-                        status: 'in-progress',
-                        therapy: 'Pending'
-                    },
-                    {
-                        date: '2025-09-15',
-                        patient: 'Robert Brown',
-                        id: 'AS-003',
-                        status: 'completed',
-                        therapy: 'Cardiovascular Support'
-                    }
-                ];
+                // Store and display assessments
+                allAssessments = stats.recentAssessments || [];
+                displayAssessments(allAssessments);
                 
-                displayAssessments(assessmentsData);
-                document.getElementById('assessmentsTable').style.display = 'table';
-            }, 1000);
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                displayAssessments([]);
+            } finally {
+                document.getElementById('loadingDiv').classList.remove('show');
+            }
         }
 
         function displayAssessments(assessments) {
             const tbody = document.getElementById('assessmentsTableBody');
             tbody.innerHTML = '';
             
-            if (assessments.length === 0) {
+            if (!assessments || assessments.length === 0) {
                 document.getElementById('assessmentsTable').style.display = 'none';
                 document.getElementById('emptyState').style.display = 'block';
                 return;
             }
             
+            document.getElementById('assessmentsTable').style.display = 'table';
+            document.getElementById('emptyState').style.display = 'none';
+            
             assessments.forEach(assessment => {
                 const row = document.createElement('tr');
-                const statusClass = assessment.status.replace(' ', '-');
+                const date = new Date(assessment.started_at).toLocaleDateString('en-GB');
+                const statusClass = assessment.status.replace('_', '-');
+                
                 row.innerHTML = `
-                    <td>${assessment.date}</td>
-                    <td class="patient-name">${assessment.patient}</td>
-                    <td>${assessment.id}</td>
+                    <td>${date}</td>
+                    <td class="patient-name">${assessment.patient_name || 'Unknown'}</td>
+                    <td>${assessment.session_id}</td>
                     <td><span class="assessment-status ${statusClass}">${assessment.status}</span></td>
-                    <td>${assessment.therapy}</td>
+                    <td>${assessment.therapy || 'Pending'}</td>
                     <td>
                         <div class="action-links">
-                            <a href="#" onclick="viewAssessment('${assessment.id}')">View</a>
-                            <a href="#" onclick="downloadReport('${assessment.id}')">Download</a>
+                            <a href="#" onclick="viewAssessment('${assessment.session_id}')">View</a>
+                            ${assessment.status === 'completed' ? 
+                                `<a href="#" onclick="downloadReport('${assessment.session_id}')">Download</a>` : 
+                                ''}
                         </div>
                     </td>
                 `;
                 tbody.appendChild(row);
             });
+        }
+
+        function filterAssessments(filter) {
+            currentFilter = filter;
+            
+            // Update tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Filter assessments
+            let filtered = allAssessments;
+            if (filter !== 'all') {
+                filtered = allAssessments.filter(a => a.status === filter);
+            }
+            
+            displayAssessments(filtered);
+        }
+
+        function searchAssessments() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            
+            let filtered = allAssessments;
+            if (searchTerm) {
+                filtered = allAssessments.filter(a => 
+                    (a.patient_name && a.patient_name.toLowerCase().includes(searchTerm)) ||
+                    (a.session_id && a.session_id.toLowerCase().includes(searchTerm))
+                );
+            }
+            
+            if (currentFilter !== 'all') {
+                filtered = filtered.filter(a => a.status === currentFilter);
+            }
+            
+            displayAssessments(filtered);
+        }
+
+        function startNewAssessment(event) {
+            event.preventDefault();
+            // Store clinic ID for the assessment
+            sessionStorage.setItem('clinicId', user.clinicId || user.id);
+            sessionStorage.setItem('clinicName', user.clinicName || user.displayName);
+            window.location.href = '/index.html';
         }
 
         function showSection(section) {
@@ -748,9 +795,24 @@
                 section.charAt(0).toUpperCase() + section.slice(1);
         }
 
+        function viewAssessment(id) {
+            console.log('Viewing assessment:', id);
+            alert('View assessment details coming soon');
+        }
+
+        function downloadReport(id) {
+            console.log('Downloading report:', id);
+            alert('Download report functionality coming soon');
+        }
+
+        function exportData() {
+            alert('Export functionality will be implemented');
+        }
+
         function logout() {
             localStorage.removeItem('token');
             localStorage.removeItem('user');
+            sessionStorage.clear();
             window.location.href = '/login.html';
         }
 
@@ -762,32 +824,8 @@
             });
         });
 
-        // Placeholder functions
-        function filterAssessments(filter) {
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-            loadDashboard(); // Reload with filter
-        }
-
-        function searchAssessments() {
-            const searchTerm = document.getElementById('searchInput').value;
-            console.log('Searching for:', searchTerm);
-            // Implement search functionality
-        }
-
-        function viewAssessment(id) {
-            console.log('Viewing assessment:', id);
-            // Implement view functionality
-        }
-
-        function downloadReport(id) {
-            console.log('Downloading report:', id);
-            // Implement download functionality
-        }
-
-        function exportData() {
-            alert('Export functionality will be implemented');
-        }
+        // Refresh data every 60 seconds
+        setInterval(loadDashboard, 60000);
     </script>
 </body>
 </html>
