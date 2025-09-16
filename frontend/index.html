@@ -1,115 +1,387 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Celloxen AI Health Agent</title>
     <style>
-        body { 
-            font-family: Arial; 
-            padding: 20px; 
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
         }
-        .container { 
-            max-width: 800px; 
-            margin: 0 auto; 
+        
+        .container {
             background: white;
-            padding: 40px;
-            border-radius: 15px;
+            border-radius: 20px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 900px;
+            height: 600px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
-        h1 {
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        /* Welcome Screen */
+        .welcome-screen {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            text-align: center;
+            flex: 1;
+        }
+        
+        .welcome-screen h2 {
             color: #333;
-            margin-bottom: 10px;
+            margin-bottom: 20px;
+            font-size: 28px;
         }
-        .subtitle {
+        
+        .welcome-screen p {
             color: #666;
             margin-bottom: 30px;
+            max-width: 500px;
+            line-height: 1.6;
         }
-        .button-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 30px;
-        }
-        button { 
-            background: #667eea; 
-            color: white; 
-            padding: 15px 30px; 
-            border: none; 
-            cursor: pointer;
-            border-radius: 8px;
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 30px;
             font-size: 16px;
-            font-weight: bold;
-            transition: all 0.3s;
+            cursor: pointer;
+            transition: transform 0.3s;
         }
-        button:hover {
-            background: #764ba2;
+        
+        .btn-primary:hover {
             transform: translateY(-2px);
         }
-        #response {
-            margin-top: 30px;
+        
+        /* Chat Screen */
+        .chat-screen {
+            display: none;
+            flex-direction: column;
+            flex: 1;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
             padding: 20px;
             background: #f8f9fa;
-            border-radius: 8px;
-            border-left: 4px solid #667eea;
-            display: none;
         }
-        .status {
-            padding: 10px;
-            background: #e8f5e9;
-            border-radius: 5px;
-            color: #2e7d32;
+        
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: flex-start;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .message.user {
+            justify-content: flex-end;
+        }
+        
+        .message-bubble {
+            max-width: 70%;
+            padding: 12px 18px;
+            border-radius: 18px;
+            position: relative;
+        }
+        
+        .message.assistant .message-bubble {
+            background: white;
+            color: #333;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .message.user .message-bubble {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .chat-input {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .chat-input input {
+            flex: 1;
+            padding: 12px 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 25px;
+            outline: none;
+            font-size: 14px;
+        }
+        
+        .chat-input button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+        }
+        
+        /* Progress Bar */
+        .progress-bar {
+            height: 4px;
+            background: #e0e0e0;
+            position: relative;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+        
+        /* Report Screen */
+        .report-screen {
+            display: none;
+            flex-direction: column;
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+        
+        .report-content {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 10px;
             margin-bottom: 20px;
+        }
+        
+        .report-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🏥 Celloxen AI Health Agent</h1>
-        <p class="subtitle">Intelligent Health Assessment System</p>
-        
-        <div class="status">
-            ✅ AI Agent Ready! System is online.
+        <div class="header">
+            <h1>🧬 Celloxen AI Health Agent</h1>
+            <p>Intelligent Health Assessment System</p>
         </div>
         
-        <div class="button-group">
-            <button onclick="testAPI()">Test API Connection</button>
-            <button onclick="startSession()">Start Assessment</button>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
         </div>
         
-        <div id="response"></div>
+        <!-- Welcome Screen -->
+        <div class="welcome-screen" id="welcomeScreen">
+            <h2>Welcome to Your Health Assessment</h2>
+            <p>Our AI-powered health agent will guide you through a personalised consultation to understand your health concerns and provide tailored recommendations.</p>
+            <button class="btn-primary" onclick="startAssessment()">Start Assessment</button>
+        </div>
+        
+        <!-- Chat Screen -->
+        <div class="chat-screen" id="chatScreen">
+            <div class="chat-messages" id="chatMessages"></div>
+            <div class="chat-input">
+                <input type="text" id="userInput" placeholder="Type your message here..." onkeypress="handleKeyPress(event)">
+                <button onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+        
+        <!-- Report Screen -->
+        <div class="report-screen" id="reportScreen">
+            <h2>Your Health Assessment Report</h2>
+            <div class="report-content" id="reportContent"></div>
+            <div class="report-actions">
+                <button class="btn-primary" onclick="downloadReport()">Download Report</button>
+                <button class="btn-primary" onclick="startNewAssessment()">New Assessment</button>
+            </div>
+        </div>
     </div>
-
+    
     <script>
-        async function testAPI() {
-            showResponse({ message: "Testing API..." });
-            try {
-                const response = await fetch('/api/HealthAgent?action=test');
-                const data = await response.json();
-                showResponse(data);
-            } catch (error) {
-                showResponse({ error: "API not configured yet. Please add API functions to GitHub." });
-            }
-        }
+        let sessionId = null;
+        let messageCount = 0;
+        let currentPhase = 'initial';
         
-        async function startSession() {
-            showResponse({ message: "Starting session..." });
+        async function startAssessment() {
             try {
                 const response = await fetch('/api/HealthAgent?action=start');
                 const data = await response.json();
-                showResponse(data);
+                
+                if (data.success) {
+                    sessionId = data.sessionId;
+                    document.getElementById('welcomeScreen').style.display = 'none';
+                    document.getElementById('chatScreen').style.display = 'flex';
+                    
+                    addMessage('assistant', data.message || "Hello! I'm your AI Health Assistant. What brings you here today?");
+                    updateProgress(20);
+                }
             } catch (error) {
-                showResponse({ 
-                    message: "Welcome! I'm your AI Health Assistant.", 
-                    info: "API functions need to be added to enable full functionality."
-                });
+                console.error('Error:', error);
+                alert('Failed to start assessment. Please try again.');
             }
         }
         
-        function showResponse(data) {
-            const div = document.getElementById('response');
-            div.style.display = 'block';
-            div.innerHTML = '<strong>Response:</strong><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+        function addMessage(role, text) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+            
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.className = 'message-bubble';
+            bubbleDiv.textContent = text;
+            
+            messageDiv.appendChild(bubbleDiv);
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        async function sendMessage() {
+            const input = document.getElementById('userInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            addMessage('user', message);
+            input.value = '';
+            messageCount++;
+            
+            try {
+                const response = await fetch('/api/HealthAgent', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'chat',
+                        sessionId: sessionId,
+                        message: message
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    addMessage('assistant', data.response);
+                    
+                    // Update progress based on message count
+                    const progress = Math.min(20 + (messageCount * 15), 90);
+                    updateProgress(progress);
+                    
+                    // Check if assessment is complete
+                    if (messageCount >= 5) {
+                        setTimeout(() => {
+                            completeAssessment();
+                        }, 2000);
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                addMessage('assistant', 'Sorry, I encountered an error. Please try again.');
+            }
+        }
+        
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+        
+        function updateProgress(percent) {
+            document.getElementById('progressFill').style.width = percent + '%';
+        }
+        
+        async function completeAssessment() {
+            updateProgress(100);
+            
+            // Generate report
+            const report = `
+                <h3>Assessment Summary</h3>
+                <p><strong>Session ID:</strong> ${sessionId}</p>
+                <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+                <p><strong>Messages Exchanged:</strong> ${messageCount}</p>
+                
+                <h3>Health Analysis</h3>
+                <p>Based on our conversation, here are your personalised health recommendations:</p>
+                <ul>
+                    <li>Continue monitoring your symptoms</li>
+                    <li>Consider scheduling a follow-up consultation</li>
+                    <li>Maintain a healthy lifestyle with regular exercise</li>
+                </ul>
+                
+                <h3>Recommended Next Steps</h3>
+                <p>1. Review this assessment with your healthcare provider</p>
+                <p>2. Track your symptoms over the next week</p>
+                <p>3. Schedule a follow-up assessment if symptoms persist</p>
+            `;
+            
+            document.getElementById('reportContent').innerHTML = report;
+            document.getElementById('chatScreen').style.display = 'none';
+            document.getElementById('reportScreen').style.display = 'flex';
+        }
+        
+        function downloadReport() {
+            const reportText = document.getElementById('reportContent').innerText;
+            const blob = new Blob([reportText], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `health-assessment-${sessionId}.txt`;
+            a.click();
+        }
+        
+        function startNewAssessment() {
+            sessionId = null;
+            messageCount = 0;
+            currentPhase = 'initial';
+            document.getElementById('chatMessages').innerHTML = '';
+            document.getElementById('progressFill').style.width = '0%';
+            document.getElementById('reportScreen').style.display = 'none';
+            document.getElementById('welcomeScreen').style.display = 'flex';
         }
     </script>
 </body>
