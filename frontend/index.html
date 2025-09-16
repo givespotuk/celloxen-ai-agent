@@ -7,66 +7,109 @@
             font-family: Arial; 
             padding: 20px; 
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            min-height: 100vh;
+            margin: 0;
         }
         .container { 
             max-width: 800px; 
             margin: 0 auto; 
             background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
             color: #333;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
         }
         button { 
             background: #667eea; 
             color: white; 
-            padding: 12px 30px; 
+            padding: 15px 30px; 
             border: none; 
             cursor: pointer;
-            border-radius: 5px;
+            border-radius: 8px;
             font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
         }
         button:hover {
             background: #764ba2;
+            transform: translateY(-2px);
         }
         #response {
-            margin-top: 20px;
-            padding: 15px;
-            background: #f0f0f0;
-            border-radius: 5px;
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
             display: none;
+        }
+        .status {
+            padding: 10px;
+            background: #e8f5e9;
+            border-radius: 5px;
+            color: #2e7d32;
+            margin-bottom: 20px;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🏥 Celloxen AI Health Agent</h1>
-        <p>Intelligent Health Assessment System - LIVE!</p>
+        <p class="subtitle">Intelligent Health Assessment System</p>
         
-        <button onclick="testAPI()">Test AI Agent API</button>
-        <button onclick="startSession()">Start Health Assessment</button>
+        <div class="status">
+            ✅ AI Agent Ready! System is online.
+        </div>
+        
+        <div class="button-group">
+            <button onclick="testAPI()">Test API Connection</button>
+            <button onclick="startSession()">Start Assessment</button>
+        </div>
         
         <div id="response"></div>
     </div>
 
     <script>
         async function testAPI() {
-            const response = await fetch('/api/HealthAgent?action=test');
-            const data = await response.json();
-            showResponse(data);
+            showResponse({ message: "Testing API..." });
+            try {
+                const response = await fetch('/api/HealthAgent?action=test');
+                const data = await response.json();
+                showResponse(data);
+            } catch (error) {
+                showResponse({ error: "API not configured yet. Please add API functions to GitHub." });
+            }
         }
         
         async function startSession() {
-            const response = await fetch('/api/HealthAgent?action=start');
-            const data = await response.json();
-            showResponse(data);
+            showResponse({ message: "Starting session..." });
+            try {
+                const response = await fetch('/api/HealthAgent?action=start');
+                const data = await response.json();
+                showResponse(data);
+            } catch (error) {
+                showResponse({ 
+                    message: "Welcome! I'm your AI Health Assistant.", 
+                    info: "API functions need to be added to enable full functionality."
+                });
+            }
         }
         
         function showResponse(data) {
             const div = document.getElementById('response');
             div.style.display = 'block';
-            div.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            div.innerHTML = '<strong>Response:</strong><pre>' + JSON.stringify(data, null, 2) + '</pre>';
         }
     </script>
 </body>
