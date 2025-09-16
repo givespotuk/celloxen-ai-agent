@@ -1,4 +1,5 @@
 const { v4: uuidv4 } = require('uuid');
+const db = require('../shared/database');
 
 // All 21 Celloxen therapy codes with full details
 const THERAPIES = {
@@ -59,7 +60,15 @@ module.exports = async function (context, req) {
             response = "Welcome to Celloxen Health Assessment. I'm your AI Health Agent. May I have your name, practitioner?";
         } 
         else if (action === 'chat') {
-            response = processConversation(session, message);
+            response = await processConversation(session, message);
+            
+            // Save messages to database
+            try {
+                await db.saveMessage(sessionId, 'user', message, session.phase);
+                await db.saveMessage(sessionId, 'assistant', response, session.phase);
+            } catch (dbError) {
+                context.log('DB save error (non-critical):', dbError);
+            }
         }
         
         context.res = {
@@ -91,7 +100,7 @@ module.exports = async function (context, req) {
     }
 };
 
-function processConversation(session, message) {
+async function processConversation(session, message) {
     const lower = message.toLowerCase();
     
     switch(session.phase) {
@@ -99,6 +108,17 @@ function processConversation(session, message) {
             // Extract practitioner name
             session.practitionerName = extractName(message) || message;
             session.phase = 'confirm_assessment';
+            
+            // Save to database
+            try {
+                await db.saveSession({
+                    sessionId: session.id,
+                    practitionerName: session.practitionerName
+                });
+            } catch (dbError) {
+                console.log('DB error (non-critical):', dbError);
+            }
+            
             return `Thank you, ${session.practitionerName}. Would you like to conduct a health assessment for a patient today?`;
             
         case 'confirm_assessment':
@@ -113,14 +133,33 @@ function processConversation(session, message) {
             // Store patient info
             session.patientData = { details: message };
             session.phase = 'ready_check';
+            
+            // Parse and save patient info to database
+            try {
+                const parts = message.split(',');
+                const patientName = parts[0] ? parts[0].trim() : message;
+                const dob = parts[1] ? parts[1].trim() : null;
+                const gender = parts[2] ? parts[2].trim() : null;
+                
+                await db.saveSession({
+                    sessionId: session.id,
+                    practitionerName: session.practitionerName,
+                    patientName: patientName,
+                    patientDob: dob,
+                    patientGender: gender
+                });
+            } catch (dbError) {
+                console.log('DB error (non-critical):', dbError);
+            }
+            
             return `Patient registered: ${message}\n\nI'm ready to conduct a holistic health diagnosis. Shall we begin?`;
             
         case 'ready_check':
-            if (lower.includes('yes') || lower.includes('begin')) {
+            if (lower.includes('yes') || lower.includes('begin') || lower.includes('ready') || lower.includes('start') || lower.includes('ok')) {
                 session.phase = 'contra_pacemaker';
                 return "Before we begin, I need to check for safety contraindications.\n\n1. Does the patient have a pacemaker or any implanted electronic device?";
             }
-            return "Please confirm when you're ready to begin the assessment.";
+            return "Please confirm when you're ready to begin the assessment. Type 'yes' to continue.";
             
         case 'contra_pacemaker':
             if (lower.includes('yes')) {
@@ -199,12 +238,31 @@ function processConversation(session, message) {
             
         case 'assess_diabetes':
             session.symptoms.push(message);
-            session.phase = 'generating_report';
             const therapy = selectBestTherapy(session.symptoms);
             session.recommendedTherapy = therapy;
-            return generateFullReport(session, therapy);
+            session.phase = 'report_complete';
             
-        case 'generating_report':
+            const fullReport = generateFullReport(session, therapy);
+            
+            // Save report to database
+            try {
+                const reportId = await db.saveReport({
+                    sessionId: session.id,
+                    reportContent: fullReport,
+                    symptoms: session.symptoms.join(', '),
+                    severityScore: parseInt(session.assessmentAnswers[1]) || 0,
+                    therapyCode: therapy.code,
+                    therapyName: therapy.name,
+                    supplements: 'Omega-3, Vitamin D, Magnesium, Probiotics, CoQ10'
+                });
+                console.log('Report saved with ID:', reportId);
+            } catch (dbError) {
+                console.log('DB report save error:', dbError);
+            }
+            
+            return fullReport;
+            
+        case 'report_complete':
             if (lower.includes('restart')) {
                 // Reset session
                 sessions[session.id] = {
@@ -333,6 +391,7 @@ Coordinate with patient's healthcare team.
 
 =====================================
 Report Generated: ${date}
+Session ID: ${session.id}
 =====================================
 
 Type 'restart' for new assessment or 'close' to end.`;
