@@ -3,29 +3,29 @@ const db = require('../shared/database');
 
 // All 21 Celloxen therapy codes with full details
 const THERAPIES = {
-  '101': { name: 'Deep Sleep Renewal Therapy', keywords: ['insomnia', 'sleep', 'awakening', 'nighttime', 'can\'t sleep'] },
-  '102': { name: 'Stress Relief Therapy', keywords: ['stress', 'burnout', 'tension', 'overwhelm', 'pressure'] },
-  '103': { name: 'Relaxation & Calm Therapy', keywords: ['anxiety', 'nervous', 'restless', 'panic', 'worried'] },
-  '104': { name: 'Sleep Quality Therapy', keywords: ['fragmented', 'early wake', 'sleep quality', 'tired'] },
-  '201': { name: 'Kidney Vitality Therapy', keywords: ['kidney', 'fluid', 'oedema', 'retention', 'swelling'] },
-  '202': { name: 'Kidney Support Therapy', keywords: ['proteinuria', 'kidney function', 'renal'] },
-  '203': { name: 'Bladder Comfort Therapy', keywords: ['bladder', 'urgency', 'frequency', 'urinary', 'urination'] },
-  '204': { name: 'Urinary Flow Therapy', keywords: ['weak stream', 'prostate', 'BPH', 'hesitancy', 'dribbling'] },
-  '301': { name: 'Heart Health Therapy', keywords: ['heart', 'cardiac', 'coronary', 'arrhythmia', 'chest'] },
-  '302': { name: 'Blood Pressure Balance Therapy', keywords: ['hypertension', 'blood pressure', 'BP', 'high pressure'] },
-  '303': { name: 'Circulation Boost Therapy', keywords: ['circulation', 'cold hands', 'numbness', 'tingling'] },
-  '304': { name: 'Cardiovascular Vitality Therapy', keywords: ['endurance', 'athletic', 'metabolic', 'performance'] },
-  '401': { name: 'Gout Relief Therapy', keywords: ['gout', 'uric acid', 'joint swelling', 'toe pain'] },
-  '402': { name: 'ArthriComfort Therapy', keywords: ['arthritis', 'joint pain', 'stiffness', 'morning stiff'] },
-  '403': { name: 'Joint Mobility Therapy', keywords: ['mobility', 'flexibility', 'range motion', 'movement'] },
-  '501': { name: 'Wound Healing Therapy', keywords: ['wound', 'ulcer', 'healing', 'sore', 'cut'] },
-  '502': { name: 'Vascular Health Therapy', keywords: ['vascular', 'vein', 'lymph', 'atherosclerosis'] },
-  '601': { name: 'Digestive Balance Therapy', keywords: ['IBS', 'constipation', 'bloating', 'digestive', 'stomach'] },
-  '602': { name: 'Energy Boost Therapy', keywords: ['fatigue', 'tired', 'energy', 'exhaustion', 'weak'] },
-  '703': { name: 'Skin Health Therapy', keywords: ['skin', 'eczema', 'psoriasis', 'dermatitis', 'rash'] },
-  '100': { name: 'Blood Sugar Balance Therapy', keywords: ['diabetes', 'blood sugar', 'insulin', 'glucose'] },
-  '801': { name: 'Total Wellness Package (Detoxification)', keywords: ['detox', 'wellness', 'general', 'prevention'] },
-  '802': { name: 'Stress & Relaxation Package', keywords: ['comprehensive', 'multiple', 'overall'] }
+  '101': { name: 'Deep Sleep Renewal Therapy', keywords: ['insomnia', 'sleep', 'awakening', 'nighttime', 'can\'t sleep'], priority: ['sleep'] },
+  '102': { name: 'Stress Relief Therapy', keywords: ['stress', 'burnout', 'tension', 'overwhelm', 'pressure'], priority: ['stress', 'work'] },
+  '103': { name: 'Relaxation & Calm Therapy', keywords: ['anxiety', 'nervous', 'restless', 'panic', 'worried'], priority: ['anxiety'] },
+  '104': { name: 'Sleep Quality Therapy', keywords: ['fragmented', 'early wake', 'sleep quality', 'tired'], priority: ['quality'] },
+  '201': { name: 'Kidney Vitality Therapy', keywords: ['kidney', 'fluid', 'oedema', 'retention', 'swelling'], priority: ['kidney'] },
+  '202': { name: 'Kidney Support Therapy', keywords: ['proteinuria', 'kidney function', 'renal'], priority: ['renal'] },
+  '203': { name: 'Bladder Comfort Therapy', keywords: ['bladder', 'urgency', 'frequency', 'urinary', 'urination'], priority: ['bladder'] },
+  '204': { name: 'Urinary Flow Therapy', keywords: ['weak stream', 'prostate', 'BPH', 'hesitancy', 'dribbling'], priority: ['prostate'] },
+  '301': { name: 'Heart Health Therapy', keywords: ['heart', 'cardiac', 'coronary', 'arrhythmia', 'chest'], priority: ['heart'] },
+  '302': { name: 'Blood Pressure Balance Therapy', keywords: ['hypertension', 'blood pressure', 'BP', 'high pressure'], priority: ['pressure'] },
+  '303': { name: 'Circulation Boost Therapy', keywords: ['circulation', 'cold hands', 'numbness', 'tingling'], priority: ['circulation'] },
+  '304': { name: 'Cardiovascular Vitality Therapy', keywords: ['endurance', 'athletic', 'metabolic', 'performance'], priority: ['athletic'] },
+  '401': { name: 'Gout Relief Therapy', keywords: ['gout', 'uric acid', 'joint swelling', 'toe pain'], priority: ['gout'] },
+  '402': { name: 'ArthriComfort Therapy', keywords: ['arthritis', 'joint pain', 'stiffness', 'morning stiff'], priority: ['arthritis'] },
+  '403': { name: 'Joint Mobility Therapy', keywords: ['mobility', 'flexibility', 'range motion', 'movement'], priority: ['mobility'] },
+  '501': { name: 'Wound Healing Therapy', keywords: ['wound', 'ulcer', 'healing', 'sore', 'cut'], priority: ['wound'] },
+  '502': { name: 'Vascular Health Therapy', keywords: ['vascular', 'vein', 'lymph', 'atherosclerosis'], priority: ['vascular'] },
+  '601': { name: 'Digestive Balance Therapy', keywords: ['IBS', 'constipation', 'bloating', 'digestive', 'stomach'], priority: ['digestive'] },
+  '602': { name: 'Energy Boost Therapy', keywords: ['fatigue', 'tired', 'energy', 'exhaustion', 'weak'], priority: ['energy'] },
+  '703': { name: 'Skin Health Therapy', keywords: ['skin', 'eczema', 'psoriasis', 'dermatitis', 'rash'], priority: ['skin'] },
+  '100': { name: 'Blood Sugar Balance Therapy', keywords: ['diabetes', 'blood sugar', 'insulin', 'glucose'], priority: ['diabetes'] },
+  '801': { name: 'Total Wellness Package (Detoxification)', keywords: ['detox', 'wellness', 'general', 'prevention'], priority: ['general'] },
+  '802': { name: 'Stress & Relaxation Package', keywords: ['comprehensive', 'multiple', 'overall'], priority: ['multiple'] }
 };
 
 const sessions = {};
@@ -105,11 +105,9 @@ async function processConversation(session, message) {
     
     switch(session.phase) {
         case 'greeting':
-            // Extract practitioner name
             session.practitionerName = extractName(message) || message;
             session.phase = 'confirm_assessment';
             
-            // Save to database
             try {
                 await db.saveSession({
                     sessionId: session.id,
@@ -130,11 +128,9 @@ async function processConversation(session, message) {
             }
             
         case 'patient_registration':
-            // Store patient info
             session.patientData = { details: message };
             session.phase = 'ready_check';
             
-            // Parse and save patient info to database
             try {
                 const parts = message.split(',');
                 const patientName = parts[0] ? parts[0].trim() : message;
@@ -238,14 +234,18 @@ async function processConversation(session, message) {
             
         case 'assess_diabetes':
             session.symptoms.push(message);
-            const therapy = selectBestTherapy(session.symptoms);
+            const therapy = await selectBestTherapy(session);
             session.recommendedTherapy = therapy;
             session.phase = 'report_complete';
             
-            const fullReport = generateFullReport(session, therapy);
+            const fullReport = await generateFullReport(session, therapy);
             
             // Save report to database
             try {
+                const supplementText = therapy.supplements ? 
+                    therapy.supplements.map(s => `${s.supplement_name}: ${s.dosage}`).join(', ') : 
+                    'Standard supplements';
+                    
                 const reportId = await db.saveReport({
                     sessionId: session.id,
                     reportContent: fullReport,
@@ -253,7 +253,7 @@ async function processConversation(session, message) {
                     severityScore: parseInt(session.assessmentAnswers[1]) || 0,
                     therapyCode: therapy.code,
                     therapyName: therapy.name,
-                    supplements: 'Omega-3, Vitamin D, Magnesium, Probiotics, CoQ10'
+                    supplements: supplementText
                 });
                 console.log('Report saved with ID:', reportId);
             } catch (dbError) {
@@ -264,7 +264,6 @@ async function processConversation(session, message) {
             
         case 'report_complete':
             if (lower.includes('restart')) {
-                // Reset session
                 sessions[session.id] = {
                     id: session.id,
                     phase: 'greeting',
@@ -290,34 +289,116 @@ async function processConversation(session, message) {
     }
 }
 
-function selectBestTherapy(symptoms) {
-    const allSymptoms = symptoms.join(' ').toLowerCase();
-    let bestMatch = { code: '801', name: THERAPIES['801'].name, score: 0 };
+async function selectBestTherapy(session) {
+    const allSymptoms = session.symptoms.join(' ').toLowerCase();
+    const severity = parseInt(session.assessmentAnswers[1]) || 5;
+    const duration = session.assessmentAnswers[0] || '';
     
-    // Score each therapy based on keyword matches
+    let therapyScores = {};
+    
+    // Score each therapy based on multiple factors
     for (const [code, therapy] of Object.entries(THERAPIES)) {
         let score = 0;
+        
+        // Primary symptom matching (highest weight)
+        const primarySymptom = session.symptoms[0].toLowerCase();
         for (const keyword of therapy.keywords) {
-            if (allSymptoms.includes(keyword)) {
+            if (primarySymptom.includes(keyword)) {
+                score += 30; // Primary symptom gets more weight
+            }
+        }
+        
+        // Priority matching for primary complaint
+        for (const priority of therapy.priority) {
+            if (primarySymptom.includes(priority)) {
+                score += 25;
+            }
+        }
+        
+        // Secondary symptoms (lower weight)
+        for (let i = 1; i < session.symptoms.length; i++) {
+            const symptom = session.symptoms[i].toLowerCase();
+            for (const keyword of therapy.keywords) {
+                if (symptom.includes(keyword)) {
+                    score += 10;
+                }
+            }
+        }
+        
+        // Severity adjustment
+        if (severity >= 8) {
+            // High severity - prioritize intensive therapies
+            if (['301', '100', '401', '501'].includes(code)) {
+                score += 15;
+            }
+        } else if (severity <= 3) {
+            // Low severity - prioritize wellness packages
+            if (['801', '802', '103'].includes(code)) {
                 score += 10;
             }
         }
-        if (score > bestMatch.score) {
-            bestMatch = { code, name: therapy.name, score };
+        
+        // Duration adjustment
+        if (duration.includes('year') || duration.includes('chronic')) {
+            // Chronic conditions - comprehensive packages
+            if (['801', '802', '402', '601'].includes(code)) {
+                score += 10;
+            }
+        }
+        
+        // Check for multiple system involvement
+        const hasMultipleIssues = session.symptoms.filter(s => s.toLowerCase() !== 'no').length > 3;
+        if (hasMultipleIssues && ['801', '802'].includes(code)) {
+            score += 20; // Prefer comprehensive packages for multiple issues
+        }
+        
+        therapyScores[code] = score;
+    }
+    
+    // Find best match
+    let bestCode = '801'; // Default
+    let highestScore = 0;
+    
+    for (const [code, score] of Object.entries(therapyScores)) {
+        if (score > highestScore) {
+            highestScore = score;
+            bestCode = code;
         }
     }
     
-    // Default to detox if no strong match
-    if (bestMatch.score < 10) {
-        bestMatch = { code: '801', name: THERAPIES['801'].name, score: 0 };
+    // Get supplements for this therapy
+    let supplements = [];
+    try {
+        supplements = await db.getSupplementsForTherapy(bestCode);
+    } catch (error) {
+        console.log('Error fetching supplements:', error);
     }
     
-    return bestMatch;
+    return {
+        code: bestCode,
+        name: THERAPIES[bestCode].name,
+        score: highestScore,
+        supplements: supplements
+    };
 }
 
-function generateFullReport(session, therapy) {
+async function generateFullReport(session, therapy) {
     const date = new Date().toLocaleDateString('en-GB');
     const patient = session.patientData.details || 'Not provided';
+    
+    // Format supplements section
+    let supplementSection = '';
+    if (therapy.supplements && therapy.supplements.length > 0) {
+        supplementSection = therapy.supplements.map(s => 
+            `- ${s.supplement_name}\n  Dosage: ${s.dosage}\n  Duration: ${s.duration}\n  Benefits: ${s.benefits}`
+        ).join('\n\n');
+    } else {
+        supplementSection = `- Omega-3 fatty acids (inflammation support)
+- Vitamin D3 (immune function)
+- Magnesium (muscle/nerve function)
+- Probiotics (digestive health)
+- CoQ10 (cellular energy)`;
+    }
     
     return `
 =====================================
@@ -344,6 +425,8 @@ DIAGNOSTIC RATIONALE
 --------------------
 Based on holistic assessment, the patient presents with symptoms
 indicating ${therapy.name.toLowerCase().replace('therapy', 'issues')}.
+Severity level: ${session.assessmentAnswers[1]}/10
+Duration: ${session.assessmentAnswers[0]}
 The Celloxen bioelectromagnetic therapy will address these through
 targeted acupoint stimulation.
 
@@ -351,6 +434,7 @@ RECOMMENDED THERAPY
 -------------------
 Therapy Code: ${therapy.code}
 Therapy Name: ${therapy.name}
+Selection Score: ${therapy.score} (Higher scores indicate better match)
 
 THERAPY OVERVIEW
 ----------------
@@ -374,14 +458,9 @@ Frequency: 2-3 sessions per week
 Course Length: 8 weeks
 Total Sessions: 16-24 sessions
 
-SUPPLEMENT RECOMMENDATION
--------------------------
-Based on assessment, consider:
-- Omega-3 fatty acids (inflammation support)
-- Vitamin D3 (immune function)
-- Magnesium (muscle/nerve function)
-- Probiotics (digestive health)
-- CoQ10 (cellular energy)
+TARGETED SUPPLEMENT RECOMMENDATIONS
+------------------------------------
+${supplementSection}
 
 NOTES
 -----
@@ -398,7 +477,6 @@ Type 'restart' for new assessment or 'close' to end.`;
 }
 
 function extractName(text) {
-    // Find capitalized word that could be a name
     const words = text.split(' ');
     for (let word of words) {
         if (word.length > 2 && /^[A-Z][a-z]+$/.test(word)) {
