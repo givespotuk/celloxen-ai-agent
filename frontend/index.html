@@ -3,16 +3,71 @@
 <head>
     <title>Celloxen AI Health Agent</title>
     <style>
-        body { font-family: Arial; padding: 20px; }
-        .container { max-width: 800px; margin: 0 auto; }
-        button { background: #007bff; color: white; padding: 10px 20px; border: none; cursor: pointer; }
+        body { 
+            font-family: Arial; 
+            padding: 20px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+            background: white;
+            color: #333;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        button { 
+            background: #667eea; 
+            color: white; 
+            padding: 12px 30px; 
+            border: none; 
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #764ba2;
+        }
+        #response {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 5px;
+            display: none;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Celloxen AI Health Agent</h1>
-        <p>Intelligent Health Assessment System</p>
-        <button onclick="alert('AI Agent Ready!')">Start Assessment</button>
+        <h1>🏥 Celloxen AI Health Agent</h1>
+        <p>Intelligent Health Assessment System - LIVE!</p>
+        
+        <button onclick="testAPI()">Test AI Agent API</button>
+        <button onclick="startSession()">Start Health Assessment</button>
+        
+        <div id="response"></div>
     </div>
+
+    <script>
+        async function testAPI() {
+            const response = await fetch('/api/HealthAgent?action=test');
+            const data = await response.json();
+            showResponse(data);
+        }
+        
+        async function startSession() {
+            const response = await fetch('/api/HealthAgent?action=start');
+            const data = await response.json();
+            showResponse(data);
+        }
+        
+        function showResponse(data) {
+            const div = document.getElementById('response');
+            div.style.display = 'block';
+            div.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+        }
+    </script>
 </body>
 </html>
