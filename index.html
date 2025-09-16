@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Celloxen AI Health Agent</title>
+    <!-- Add jsPDF library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 900px;
+            height: 700px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        /* Welcome Screen */
+        .welcome-screen {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            text-align: center;
+            flex: 1;
+        }
+        
+        .welcome-screen h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+        
+        .welcome-screen p {
+            color: #666;
+            margin-bottom: 30px;
+            max-width: 500px;
+            line-height: 1.6;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 30px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+        }
+        
+        /* Chat Screen */
+        .chat-screen {
+            display: none;
+            flex-direction: column;
+            flex: 1;
+            overflow: hidden;
+            height: 100%;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 20px;
+            background: #f8f9fa;
+            scroll-behavior: smooth;
+            min-height: 0;
+        }
+        
+        /* Custom scrollbar for better visibility */
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .chat-messages::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: flex-start;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .message.user {
+            justify-content: flex-end;
+        }
+        
+        .message-bubble {
+            max-width: 70%;
+            padding: 12px 18px;
+            border-radius: 18px;
+            position: relative;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        
+        .message.assistant .message-bubble {
+            background: white;
+            color: #333;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .message.user .message-bubble {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .message.report .message-bubble {
+            max-width: 90%;
+            background: #f0f0f0;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        
+        /* Input area - FIXED TO BOTTOM */
+        .chat-input {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+        
+        .chat-input input {
+            flex: 1;
+            padding: 12px 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 25px;
+            outline: none;
+            font-size: 14px;
+        }
+        
+        .chat-input button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        
+        /* Progress Bar */
+        .progress-bar {
+            height: 4px;
+            background: #e0e0e0;
+            position: relative;
+            flex-shrink: 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+        
+        /* Report Actions */
+        .report-actions {
+            display: none;
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            gap: 10px;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        .report-actions button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 20px;
+            cursor: pointer;
+            margin: 0 5px;
+        }
+        
+        /* Scroll indicator */
+        .scroll-indicator {
+            position: absolute;
+            bottom: 80px;
+            right: 30px;
+            background: rgba(102, 126, 234, 0.9);
+            color: white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+        }
+        
+        .scroll-indicator:hover {
+            background: rgba(102, 126, 234, 1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧬 Celloxen AI Health Agent</h1>
+            <p>Intelligent Health Assessment System</p>
+        </div>
+        
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        
+        <!-- Welcome Screen -->
+        <div class="welcome-screen" id="welcomeScreen">
+            <h2>Welcome to Your Health Assessment</h2>
+            <p>Our AI-powered health agent will guide you through a personalised consultation to understand your health concerns and provide tailored recommendations.</p>
+            <button class="btn-primary" onclick="startAssessment()">Start Assessment</button>
+        </div>
+        
+        <!-- Chat Screen -->
+        <div class="chat-screen" id="chatScreen">
+            <div class="chat-messages" id="chatMessages"></div>
+            <div class="scroll-indicator" id="scrollIndicator" onclick="scrollToBottom()">↓</div>
+            <div class="chat-input" id="chatInputArea">
+                <input type="text" id="userInput" placeholder="Type your message here..." onkeypress="handleKeyPress(event)">
+                <button onclick="sendMessage()">Send</button>
+            </div>
+            <div class="report-actions" id="reportActions">
+            <button onclick="downloadReport()">Download Text</button>
+            <button onclick="generatePDF()">Download PDF</button>  <!-- Changed from downloadPDF() to generatePDF() -->
+            <button onclick="printReport()">Print Report</button>
+            <button onclick="startNewAssessment()">New Assessment</button>
+            <button onclick="closeAssessment()">Close</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let sessionId = null;
+        let currentPhase = 'initial';
+        let assessmentReport = null;
+        let reportData = null;
+        let progressMap = {
+            'greeting': 5,
+            'confirm_assessment': 10,
+            'patient_registration': 15,
+            'ready_check': 20,
+            'contra_pacemaker': 25,
+            'contra_pregnancy': 30,
+            'contra_cancer': 35,
+            'contra_heart': 40,
+            'assess_main': 45,
+            'assess_duration': 50,
+            'assess_severity': 55,
+            'assess_related': 60,
+            'assess_sleep': 65,
+            'assess_digestive': 70,
+            'assess_joints': 75,
+            'assess_cardio': 80,
+            'assess_diabetes': 85,
+            'report_complete': 100
+        };
+        
+        async function startAssessment() {
+            try {
+                const response = await fetch('/api/HealthAgent?action=start');
+                const data = await response.json();
+                
+                if (data.success) {
+                    sessionId = data.sessionId;
+                    currentPhase = data.phase;
+                    document.getElementById('welcomeScreen').style.display = 'none';
+                    document.getElementById('chatScreen').style.display = 'flex';
+                    
+                    addMessage('assistant', data.message || data.response);
+                    updateProgressBar();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to start assessment. Please try again.');
+            }
+        }
+        
+        function addMessage(role, text) {
+            const messagesDiv = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            
+            // Check if this is a report (long text with specific formatting)
+            const isReport = text && text.includes('CELLOXEN HEALTH ASSESSMENT REPORT');
+            
+            if (isReport) {
+                messageDiv.className = 'message report';
+                // Parse and store report data for PDF generation
+                parseReportData(text);
+            } else {
+                messageDiv.className = `message ${role}`;
+            }
+            
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.className = 'message-bubble';
+            bubbleDiv.textContent = text;
+            
+            messageDiv.appendChild(bubbleDiv);
+            messagesDiv.appendChild(messageDiv);
+            
+            // Auto-scroll to bottom after adding message
+            setTimeout(() => {
+                scrollToBottom();
+            }, 100);
+            
+            // If it's a report, store it and show report actions
+            if (isReport) {
+                assessmentReport = text;
+                document.getElementById('chatInputArea').style.display = 'none';
+                document.getElementById('reportActions').style.display = 'flex';
+            }
+        }
+        
+        function parseReportData(reportText) {
+            const lines = reportText.split('\n');
+            reportData = {
+                patientInfo: '',
+                practitioner: '',
+                date: new Date().toLocaleDateString('en-GB'),
+                chiefComplaints: '',
+                healthState: [],
+                therapy: '',
+                therapyCode: '',
+                protocol: '',
+                supplements: []
+            };
+            
+            let currentSection = '';
+            for (const line of lines) {
+                if (line.includes('PATIENT INFORMATION')) {
+                    currentSection = 'patient';
+                } else if (line.includes('Practitioner:')) {
+                    reportData.practitioner = line.split(':')[1]?.trim() || '';
+                } else if (line.includes('Primary:')) {
+                    reportData.chiefComplaints = line.split(':')[1]?.trim() || '';
+                } else if (line.includes('Therapy Code:')) {
+                    reportData.therapyCode = line.split(':')[1]?.trim() || '';
+                } else if (line.includes('Therapy Name:')) {
+                    reportData.therapy = line.split(':')[1]?.trim() || '';
+                } else if (line.includes('CURRENT HEALTH STATE')) {
+                    currentSection = 'health';
+                } else if (line.includes('SUPPLEMENT RECOMMENDATIONS')) {
+                    currentSection = 'supplements';
+                } else if (currentSection === 'health' && line.trim().startsWith('-')) {
+                    reportData.healthState.push(line.trim());
+                } else if (currentSection === 'supplements' && line.trim().startsWith('-')) {
+                    reportData.supplements.push(line.trim());
+                }
+            }
+        }
+        
+        function generatePDF() {
+            if (!assessmentReport) {
+                alert('No report available to convert to PDF');
+                return;
+            }
+            
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Set colors
+            const primaryColor = [102, 126, 234];
+            const textColor = [51, 51, 51];
+            
+            // Add header
+            doc.setFillColor(...primaryColor);
+            doc.rect(0, 0, 210, 40, 'F');
+            
+            // Add title
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(22);
+            doc.text('CELLOXEN HEALTH', 105, 20, { align: 'center' });
+            doc.setFontSize(14);
+            doc.text('Assessment Report', 105, 30, { align: 'center' });
+            
+            // Reset text color
+            doc.setTextColor(...textColor);
+            
+            // Add report content
+            let yPosition = 50;
+            const pageHeight = doc.internal.pageSize.height;
+            const lines = assessmentReport.split('\n');
+            
+            doc.setFontSize(11);
+            
+            for (const line of lines) {
+                if (yPosition > pageHeight - 30) {
+                    doc.addPage();
+                    yPosition = 20;
+                }
+                
+                if (line.includes('====')) {
+                    continue;
+                }
+                
+                if (line.includes('PATIENT INFORMATION') || 
+                    line.includes('CHIEF COMPLAINTS') || 
+                    line.includes('RECOMMENDED THERAPY') ||
+                    line.includes('TREATMENT PROTOCOL') ||
+                    line.includes('SUPPLEMENT RECOMMENDATIONS')) {
+                    // Section headers
+                    doc.setFontSize(12);
+                    doc.setTextColor(...primaryColor);
+                    doc.text(line, 20, yPosition);
+                    doc.setTextColor(...textColor);
+                    doc.setFontSize(11);
+                    yPosition += 8;
+                } else if (line.startsWith('-')) {
+                    // Bullet points
+                    doc.text('•', 25, yPosition);
+                    const bulletText = line.substring(1).trim();
+                    const splitText = doc.splitTextToSize(bulletText, 160);
+                    doc.text(splitText, 30, yPosition);
+                    yPosition += splitText.length * 5;
+                } else if (line.trim()) {
+                    // Regular text
+                    const splitText = doc.splitTextToSize(line, 170);
+                    doc.text(splitText, 20, yPosition);
+                    yPosition += splitText.length * 5;
+                }
+            }
+            
+            // Add footer
+            const pageCount = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(9);
+                doc.setTextColor(150, 150, 150);
+                doc.text(
+                    `Page ${i} of ${pageCount} | Generated: ${new Date().toLocaleDateString('en-GB')} | Session: ${sessionId}`,
+                    105,
+                    doc.internal.pageSize.height - 10,
+                    { align: 'center' }
+                );
+            }
+            
+            // Save the PDF
+            doc.save(`celloxen-report-${sessionId}.pdf`);
+        }
+        
+        function scrollToBottom() {
+            const messagesDiv = document.getElementById('chatMessages');
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            hideScrollIndicator();
+        }
+        
+        function checkScroll() {
+            const messagesDiv = document.getElementById('chatMessages');
+            const isAtBottom = messagesDiv.scrollHeight - messagesDiv.scrollTop <= messagesDiv.clientHeight + 50;
+            
+            if (!isAtBottom && messagesDiv.scrollHeight > messagesDiv.clientHeight) {
+                document.getElementById('scrollIndicator').style.display = 'flex';
+            } else {
+                hideScrollIndicator();
+            }
+        }
+        
+        function hideScrollIndicator() {
+            document.getElementById('scrollIndicator').style.display = 'none';
+        }
+        
+        // Set up scroll listener
+        document.addEventListener('DOMContentLoaded', function() {
+            const messagesDiv = document.getElementById('chatMessages');
+            if (messagesDiv) {
+                messagesDiv.addEventListener('scroll', checkScroll);
+            }
+        });
+        
+        async function sendMessage() {
+            const input = document.getElementById('userInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            addMessage('user', message);
+            input.value = '';
+            input.focus();
+            
+            try {
+                const response = await fetch('/api/HealthAgent', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'chat',
+                        sessionId: sessionId,
+                        message: message
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentPhase = data.phase;
+                    addMessage('assistant', data.message || data.response);
+                    updateProgressBar();
+                    
+                    if (data.phase === 'terminated') {
+                        document.getElementById('userInput').disabled = true;
+                        setTimeout(() => {
+                            alert('Session terminated for patient safety. Please refer the patient to their doctor.');
+                            startNewAssessment();
+                        }, 3000);
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                addMessage('assistant', 'Sorry, I encountered an error. Please try again.');
+            }
+        }
+        
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+        
+        function updateProgressBar() {
+            const progress = progressMap[currentPhase] || 0;
+            document.getElementById('progressFill').style.width = progress + '%';
+        }
+        
+        function downloadReport() {
+            if (!assessmentReport) return;
+            
+            const blob = new Blob([assessmentReport], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `celloxen-assessment-${sessionId}.txt`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+        
+        function printReport() {
+            if (!assessmentReport) return;
+            
+            const printWindow = window.open('', '', 'width=800,height=600');
+            printWindow.document.write('<html><head><title>Celloxen Health Assessment Report</title></head><body>');
+            printWindow.document.write('<pre style="font-family: monospace; font-size: 12px;">');
+            printWindow.document.write(assessmentReport.replace(/</g, '&lt;').replace(/>/g, '&gt;'));
+            printWindow.document.write('</pre></body></html>');
+            printWindow.document.close();
+            printWindow.print();
+        }
+        
+        function startNewAssessment() {
+            sessionId = null;
+            currentPhase = 'initial';
+            assessmentReport = null;
+            reportData = null;
+            document.getElementById('chatMessages').innerHTML = '';
+            document.getElementById('progressFill').style.width = '0%';
+            document.getElementById('chatInputArea').style.display = 'flex';
+            document.getElementById('reportActions').style.display = 'none';
+            document.getElementById('userInput').disabled = false;
+            startAssessment();
+        }
+        
+        function closeAssessment() {
+            if (confirm('Are you sure you want to close this assessment?')) {
+                sessionId = null;
+                currentPhase = 'initial';
+                assessmentReport = null;
+                reportData = null;
+                document.getElementById('chatMessages').innerHTML = '';
+                document.getElementById('progressFill').style.width = '0%';
+                document.getElementById('chatScreen').style.display = 'none';
+                document.getElementById('welcomeScreen').style.display = 'flex';
+                document.getElementById('chatInputArea').style.display = 'flex';
+                document.getElementById('reportActions').style.display = 'none';
+                document.getElementById('userInput').disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
+
+
