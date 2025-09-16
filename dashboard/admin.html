@@ -27,7 +27,7 @@
             background: linear-gradient(135deg, #5e72e4 0%, #825ee4 100%);
             color: white;
             overflow-y: auto;
-            transition: all 0.3s ease; 
+            transition: all 0.3s ease;
             z-index: 1000;
         }
 
@@ -128,6 +128,15 @@
             padding: 30px;
         }
 
+        /* Section visibility */
+        .dashboard-section {
+            display: block;
+        }
+        
+        .dashboard-section.hidden {
+            display: none;
+        }
+
         /* Stats Cards */
         .stats-row {
             display: grid;
@@ -190,6 +199,33 @@
         .stat-card .stat-label {
             color: #6c757d;
             font-size: 0.95rem;
+        }
+
+        /* Mini Stats */
+        .mini-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .mini-stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+        }
+        
+        .mini-stat-card .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2d3436;
+        }
+        
+        .mini-stat-card .stat-label {
+            color: #6c757d;
+            font-size: 0.85rem;
+            margin-top: 5px;
         }
 
         /* Table Section */
@@ -259,6 +295,32 @@
             font-weight: 500;
         }
 
+        /* Filter Bar */
+        .filter-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-bar select,
+        .filter-bar input {
+            padding: 8px 12px;
+            border: 2px solid #e1e5eb;
+            border-radius: 8px;
+            font-size: 0.95rem;
+        }
+        
+        .filter-bar button {
+            padding: 8px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
         /* Table */
         .data-table {
             width: 100%;
@@ -312,6 +374,16 @@
         .status-badge.inactive {
             background: #f8d7da;
             color: #721c24;
+        }
+
+        .status-badge.completed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-badge.in_progress {
+            background: #fff3cd;
+            color: #856404;
         }
 
         .action-buttons {
@@ -586,62 +658,150 @@
             <div class="alert success" id="successAlert"></div>
             <div class="alert error" id="errorAlert"></div>
 
-            <!-- Stats Cards -->
-            <div class="stats-row">
-                <div class="stat-card primary">
-                    <div class="stat-icon">🏥</div>
-                    <div class="stat-value" id="totalClinics">0</div>
-                    <div class="stat-label">Total Clinics</div>
-                </div>
-                <div class="stat-card success">
-                    <div class="stat-icon">✅</div>
-                    <div class="stat-value" id="activeClinics">0</div>
-                    <div class="stat-label">Active Clinics</div>
-                </div>
-                <div class="stat-card warning">
-                    <div class="stat-icon">📋</div>
-                    <div class="stat-value" id="totalAssessments">0</div>
-                    <div class="stat-label">Total Assessments</div>
-                </div>
-                <div class="stat-card danger">
-                    <div class="stat-icon">💰</div>
-                    <div class="stat-value" id="monthlyRevenue">£0</div>
-                    <div class="stat-label">Monthly Revenue</div>
+            <!-- Overview Section -->
+            <div id="overview-section" class="dashboard-section">
+                <!-- Stats Cards -->
+                <div class="stats-row">
+                    <div class="stat-card primary">
+                        <div class="stat-icon">🏥</div>
+                        <div class="stat-value" id="totalClinics">0</div>
+                        <div class="stat-label">Total Clinics</div>
+                    </div>
+                    <div class="stat-card success">
+                        <div class="stat-icon">✅</div>
+                        <div class="stat-value" id="activeClinics">0</div>
+                        <div class="stat-label">Active Clinics</div>
+                    </div>
+                    <div class="stat-card warning">
+                        <div class="stat-icon">📋</div>
+                        <div class="stat-value" id="totalAssessments">0</div>
+                        <div class="stat-label">Total Assessments</div>
+                    </div>
+                    <div class="stat-card danger">
+                        <div class="stat-icon">💰</div>
+                        <div class="stat-value" id="monthlyRevenue">£0</div>
+                        <div class="stat-label">Monthly Revenue</div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Clinics Table -->
-            <div class="table-section">
-                <div class="table-header">
-                    <h3>Clinic Management</h3>
-                    <button class="btn-add" onclick="openAddClinicModal()">+ Add New Clinic</button>
-                </div>
-                
-                <div class="search-bar">
-                    <input type="text" id="searchInput" placeholder="Search clinics...">
-                    <button onclick="searchClinics()">Search</button>
-                </div>
+            <!-- Clinics Section -->
+            <div id="clinics-section" class="dashboard-section hidden">
+                <div class="table-section">
+                    <div class="table-header">
+                        <h3>Clinic Management</h3>
+                        <button class="btn-add" onclick="openAddClinicModal()">+ Add New Clinic</button>
+                    </div>
+                    
+                    <div class="search-bar">
+                        <input type="text" id="searchInput" placeholder="Search clinics...">
+                        <button onclick="searchClinics()">Search</button>
+                    </div>
 
-                <div class="loading" id="loadingDiv">
-                    <div class="spinner"></div>
-                    <p>Loading clinics...</p>
-                </div>
+                    <div class="loading" id="loadingDiv">
+                        <div class="spinner"></div>
+                        <p>Loading clinics...</p>
+                    </div>
 
-                <table class="data-table" id="clinicsTable">
-                    <thead>
-                        <tr>
-                            <th>Clinic Name</th>
-                            <th>Email</th>
-                            <th>Status</th>
-                            <th>Assessments</th>
-                            <th>Usage</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="clinicsTableBody">
-                        <!-- Data will be loaded here -->
-                    </tbody>
-                </table>
+                    <table class="data-table" id="clinicsTable">
+                        <thead>
+                            <tr>
+                                <th>Clinic Name</th>
+                                <th>Email</th>
+                                <th>Status</th>
+                                <th>Assessments</th>
+                                <th>Usage</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="clinicsTableBody">
+                            <!-- Data will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Assessments Section -->
+            <div id="assessments-section" class="dashboard-section hidden">
+                <div class="table-section">
+                    <div class="table-header">
+                        <h3>All Assessments</h3>
+                    </div>
+
+                    <!-- Mini Stats -->
+                    <div class="mini-stats">
+                        <div class="mini-stat-card">
+                            <div class="stat-value" id="assessmentTotal">0</div>
+                            <div class="stat-label">Total (30 days)</div>
+                        </div>
+                        <div class="mini-stat-card">
+                            <div class="stat-value" id="assessmentCompleted">0</div>
+                            <div class="stat-label">Completed</div>
+                        </div>
+                        <div class="mini-stat-card">
+                            <div class="stat-value" id="assessmentInProgress">0</div>
+                            <div class="stat-label">In Progress</div>
+                        </div>
+                        <div class="mini-stat-card">
+                            <div class="stat-value" id="assessmentClinics">0</div>
+                            <div class="stat-label">Active Clinics</div>
+                        </div>
+                    </div>
+
+                    <!-- Filters -->
+                    <div class="filter-bar">
+                        <select id="filterClinic">
+                            <option value="">All Clinics</option>
+                        </select>
+                        <select id="filterStatus">
+                            <option value="">All Status</option>
+                            <option value="completed">Completed</option>
+                            <option value="in_progress">In Progress</option>
+                        </select>
+                        <input type="date" id="filterDateFrom" placeholder="From Date">
+                        <input type="date" id="filterDateTo" placeholder="To Date">
+                        <button onclick="filterAssessments()">Apply Filters</button>
+                        <button onclick="resetFilters()">Reset</button>
+                    </div>
+
+                    <div class="loading" id="assessmentLoadingDiv">
+                        <div class="spinner"></div>
+                        <p>Loading assessments...</p>
+                    </div>
+
+                    <table class="data-table" id="assessmentsTable">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Session ID</th>
+                                <th>Clinic</th>
+                                <th>Patient</th>
+                                <th>Practitioner</th>
+                                <th>Status</th>
+                                <th>Therapy</th>
+                            </tr>
+                        </thead>
+                        <tbody id="assessmentsTableBody">
+                            <!-- Data will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Reports Section -->
+            <div id="reports-section" class="dashboard-section hidden">
+                <div class="table-section">
+                    <h3>Reports</h3>
+                    <p>Comprehensive reporting features coming soon...</p>
+                </div>
+            </div>
+
+            <!-- Settings Section -->
+            <div id="settings-section" class="dashboard-section hidden">
+                <div class="table-section">
+                    <h3>System Settings</h3>
+                    <p>System configuration options coming soon...</p>
+                </div>
             </div>
         </div>
     </div>
@@ -723,6 +883,27 @@
         // Load initial data
         loadDashboard();
 
+        // Section management
+        function showSection(sectionName) {
+            // Hide all sections
+            document.querySelectorAll('.dashboard-section').forEach(section => {
+                section.classList.add('hidden');
+            });
+            
+            // Show selected section
+            const section = document.getElementById(`${sectionName}-section`);
+            if (section) {
+                section.classList.remove('hidden');
+            }
+            
+            // Load section-specific data
+            if (sectionName === 'overview' || sectionName === 'clinics') {
+                loadDashboard();
+            } else if (sectionName === 'assessments') {
+                loadAssessments();
+            }
+        }
+
         async function loadDashboard() {
             // Show loading
             document.getElementById('loadingDiv').classList.add('show');
@@ -787,6 +968,135 @@
                 `;
                 tbody.appendChild(row);
             });
+        }
+
+        // Load assessments
+        async function loadAssessments() {
+            const loadingDiv = document.getElementById('assessmentLoadingDiv');
+            if (loadingDiv) loadingDiv.classList.add('show');
+            
+            try {
+                const response = await fetch('/api/getAllAssessments', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({})
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Update mini stats
+                    document.getElementById('assessmentTotal').textContent = data.stats.total;
+                    document.getElementById('assessmentCompleted').textContent = data.stats.completed;
+                    document.getElementById('assessmentInProgress').textContent = data.stats.inProgress;
+                    document.getElementById('assessmentClinics').textContent = data.stats.uniqueClinics;
+                    
+                    // Populate clinic filter
+                    populateClinicFilter(data.assessments);
+                    
+                    // Display assessments
+                    displayAssessments(data.assessments);
+                } else {
+                    // If API doesn't exist yet, show placeholder data
+                    showAlert('Assessments API not configured yet', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading assessments:', error);
+                // Show placeholder message
+                document.getElementById('assessmentsTableBody').innerHTML = 
+                    '<tr><td colspan="7" style="text-align: center;">Assessment tracking will be available once clinics start using the system</td></tr>';
+            } finally {
+                if (loadingDiv) loadingDiv.classList.remove('show');
+            }
+        }
+
+        function populateClinicFilter(assessments) {
+            const clinics = [...new Map(assessments.map(a => [a.clinic_id, a.clinic_name])).entries()];
+            const select = document.getElementById('filterClinic');
+            select.innerHTML = '<option value="">All Clinics</option>';
+            
+            clinics.forEach(([id, name]) => {
+                if (id && name) {
+                    const option = document.createElement('option');
+                    option.value = id;
+                    option.textContent = name;
+                    select.appendChild(option);
+                }
+            });
+        }
+
+        function displayAssessments(assessments) {
+            const tbody = document.getElementById('assessmentsTableBody');
+            tbody.innerHTML = '';
+            
+            if (!assessments || assessments.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No assessments found</td></tr>';
+                return;
+            }
+            
+            assessments.forEach(assessment => {
+                const row = document.createElement('tr');
+                const date = new Date(assessment.started_at).toLocaleDateString('en-GB');
+                const status = assessment.status || 'unknown';
+                
+                row.innerHTML = `
+                    <td>${date}</td>
+                    <td>${assessment.session_id.substring(0, 8)}...</td>
+                    <td>${assessment.clinic_name || 'Direct'}</td>
+                    <td>${assessment.patient_name || 'N/A'}</td>
+                    <td>${assessment.practitioner_name || 'N/A'}</td>
+                    <td><span class="status-badge ${status.replace('_', '-')}">${status.replace('_', ' ')}</span></td>
+                    <td>${assessment.recommended_therapy_name || 'Pending'}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        async function filterAssessments() {
+            const clinicId = document.getElementById('filterClinic').value;
+            const status = document.getElementById('filterStatus').value;
+            const dateFrom = document.getElementById('filterDateFrom').value;
+            const dateTo = document.getElementById('filterDateTo').value;
+            
+            const loadingDiv = document.getElementById('assessmentLoadingDiv');
+            if (loadingDiv) loadingDiv.classList.add('show');
+            
+            try {
+                const response = await fetch('/api/getAllAssessments', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({
+                        clinicId,
+                        status,
+                        dateFrom,
+                        dateTo
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayAssessments(data.assessments);
+                }
+            } catch (error) {
+                showAlert('Error filtering assessments', 'error');
+            } finally {
+                if (loadingDiv) loadingDiv.classList.remove('show');
+            }
+        }
+
+        function resetFilters() {
+            document.getElementById('filterClinic').value = '';
+            document.getElementById('filterStatus').value = '';
+            document.getElementById('filterDateFrom').value = '';
+            document.getElementById('filterDateTo').value = '';
+            loadAssessments();
         }
 
         function openAddClinicModal() {
@@ -954,8 +1264,11 @@
                 document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
                 item.classList.add('active');
                 const section = item.dataset.section;
+                
                 document.querySelector('.breadcrumb').textContent = 
                     'Dashboard ' + section.charAt(0).toUpperCase() + section.slice(1);
+                
+                showSection(section);
             });
         });
 
@@ -1012,7 +1325,14 @@
         });
 
         // Refresh data every 60 seconds
-        setInterval(loadDashboard, 60000);
+        setInterval(() => {
+            const activeSection = document.querySelector('.menu-item.active').dataset.section;
+            if (activeSection === 'overview' || activeSection === 'clinics') {
+                loadDashboard();
+            } else if (activeSection === 'assessments') {
+                loadAssessments();
+            }
+        }, 60000);
     </script>
 </body>
 </html>
