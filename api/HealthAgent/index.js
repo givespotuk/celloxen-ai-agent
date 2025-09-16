@@ -96,12 +96,16 @@ module.exports = async function (context, req) {
     const action = req.query.action || req.body?.action || 'chat';
     const sessionId = req.body?.sessionId || uuidv4();
     const message = (req.body?.message || '').trim();
+    const clinicId = req.body?.clinicId || null;  // Get clinic ID from request
+    const clinicName = req.body?.clinicName || null;  // Get clinic name from request
     
     // Initialize session if new
     if (!sessions[sessionId]) {
         sessions[sessionId] = {
             id: sessionId,
             phase: 'start',
+            clinicId: clinicId,  // Store clinic ID
+            clinicName: clinicName,  // Store clinic name
             practitionerName: null,
             patientData: {},
             symptoms: [],
@@ -113,12 +117,42 @@ module.exports = async function (context, req) {
     }
     
     const session = sessions[sessionId];
+    
+    // Update clinic info if provided
+    if (clinicId && !session.clinicId) {
+        session.clinicId = clinicId;
+    }
+    if (clinicName && !session.clinicName) {
+        session.clinicName = clinicName;
+    }
+    
+    // Check clinic usage limits before proceeding
+    if (session.clinicId && action === 'start') {
+        const usageCheck = await db.checkClinicUsage(session.clinicId);
+        if (!usageCheck.allowed) {
+            context.res = {
+                status: 200,
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                body: {
+                    success: false,
+                    message: usageCheck.message || 'Assessment cannot proceed. Please contact administrator.',
+                    phase: 'limited'
+                }
+            };
+            return;
+        }
+    }
+    
     let response = '';
     
     try {
         if (action === 'start') {
             session.phase = 'greeting';
-            response = "Welcome to Celloxen Health Assessment. I'm your AI Health Agent. May I have your name, practitioner?";
+            const clinicGreeting = session.clinicName ? ` from ${session.clinicName}` : '';
+            response = `Welcome to Celloxen Health Assessment${clinicGreeting}. I'm your AI Health Agent. May I have your name, practitioner?`;
         } 
         else if (action === 'chat') {
             response = await processConversation(session, message);
@@ -169,9 +203,12 @@ async function processConversation(session, message) {
             session.practitionerName = extractName(message) || message;
             session.phase = 'confirm_assessment';
             
+            // Save session with clinic ID
             try {
                 await db.saveSession({
                     sessionId: session.id,
+                    clinicId: session.clinicId,  // Include clinic ID
+                    clinicName: session.clinicName,  // Use clinic name if no practitioner name
                     practitionerName: session.practitionerName
                 });
             } catch (dbError) {
@@ -198,13 +235,25 @@ async function processConversation(session, message) {
                 const dob = parts[1] ? parts[1].trim() : null;
                 const gender = parts[2] ? parts[2].trim() : null;
                 
+                // Update session with patient data and clinic ID
                 await db.saveSession({
                     sessionId: session.id,
+                    clinicId: session.clinicId,  // Include clinic ID
+                    clinicName: session.clinicName,
                     practitionerName: session.practitionerName,
                     patientName: patientName,
                     patientDob: dob,
                     patientGender: gender
                 });
+                
+                // Save patient to clinic if clinic ID exists
+                if (session.clinicId) {
+                    await db.savePatient(session.clinicId, {
+                        name: patientName,
+                        dob: dob,
+                        gender: gender
+                    });
+                }
             } catch (dbError) {
                 console.log('DB error (non-critical):', dbError);
             }
@@ -321,7 +370,7 @@ async function processConversation(session, message) {
             
             const fullReport = await generateFullReport(session, therapy);
             
-            // Save report to database
+            // Save report to database with clinic ID
             try {
                 const supplementText = therapy.supplements ? 
                     therapy.supplements.map(s => `${s.supplement_name}: ${s.dosage}`).join(', ') : 
@@ -329,6 +378,7 @@ async function processConversation(session, message) {
                     
                 const reportId = await db.saveReport({
                     sessionId: session.id,
+                    clinicId: session.clinicId,  // Include clinic ID
                     reportContent: fullReport,
                     symptoms: session.symptoms.join(', '),
                     severityScore: parseInt(session.assessmentAnswers[1]) || 0,
@@ -345,9 +395,15 @@ async function processConversation(session, message) {
             
         case 'report_complete':
             if (lower.includes('restart')) {
+                // Preserve clinic info for next assessment
+                const clinicId = session.clinicId;
+                const clinicName = session.clinicName;
+                
                 sessions[session.id] = {
                     id: session.id,
                     phase: 'greeting',
+                    clinicId: clinicId,  // Preserve clinic ID
+                    clinicName: clinicName,  // Preserve clinic name
                     practitionerName: null,
                     patientData: {},
                     symptoms: [],
@@ -365,6 +421,9 @@ async function processConversation(session, message) {
             
         case 'terminated':
             return "Session terminated for safety. Please refer patient to their doctor.";
+            
+        case 'limited':
+            return "Your clinic has reached its assessment limit. Please contact administration.";
             
         default:
             return "Please continue with the assessment.";
@@ -487,6 +546,7 @@ async function selectBestTherapy(session, aiAnalysis) {
 async function generateFullReport(session, therapy) {
     const date = new Date().toLocaleDateString('en-GB');
     const patient = session.patientData.details || 'Not provided';
+    const clinicInfo = session.clinicName ? `\nClinic: ${session.clinicName}` : '';
     
     // Include AI analysis if available
     let aiInsight = '';
@@ -521,7 +581,8 @@ PATIENT INFORMATION
 -------------------
 ${patient}
 Assessment Date: ${date}
-Practitioner: ${session.practitionerName}
+Practitioner: ${session.practitionerName}${clinicInfo}
+Session ID: ${session.id}
 
 CHIEF COMPLAINTS
 ----------------
@@ -582,7 +643,7 @@ Coordinate with patient's healthcare team.
 
 =====================================
 Report Generated: ${date}
-Session ID: ${session.id}
+Session ID: ${session.id}${session.clinicId ? '\nClinic ID: ' + session.clinicId : ''}
 =====================================
 
 Type 'restart' for new assessment or 'close' to end.`;
