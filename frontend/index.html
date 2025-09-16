@@ -31,6 +31,7 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
+            position: relative;
         }
         
         .header {
@@ -38,6 +39,7 @@
             color: white;
             padding: 20px;
             text-align: center;
+            flex-shrink: 0;
         }
         
         .header h1 {
@@ -89,18 +91,42 @@
             transform: translateY(-2px);
         }
         
-        /* Chat Screen */
+        /* Chat Screen - FIXED SCROLLING */
         .chat-screen {
             display: none;
             flex-direction: column;
             flex: 1;
+            overflow: hidden;
+            height: 100%;
         }
         
         .chat-messages {
             flex: 1;
             overflow-y: auto;
+            overflow-x: hidden;
             padding: 20px;
             background: #f8f9fa;
+            scroll-behavior: smooth;
+            min-height: 0;
+        }
+        
+        /* Custom scrollbar for better visibility */
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .chat-messages::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #555;
         }
         
         .message {
@@ -131,6 +157,7 @@
             border-radius: 18px;
             position: relative;
             word-wrap: break-word;
+            overflow-wrap: break-word;
         }
         
         .message.assistant .message-bubble {
@@ -152,12 +179,14 @@
             white-space: pre-wrap;
         }
         
+        /* Input area - FIXED TO BOTTOM */
         .chat-input {
             padding: 20px;
             background: white;
             border-top: 1px solid #e0e0e0;
             display: flex;
             gap: 10px;
+            flex-shrink: 0;
         }
         
         .chat-input input {
@@ -176,6 +205,7 @@
             padding: 12px 30px;
             border-radius: 25px;
             cursor: pointer;
+            flex-shrink: 0;
         }
         
         /* Progress Bar */
@@ -183,6 +213,7 @@
             height: 4px;
             background: #e0e0e0;
             position: relative;
+            flex-shrink: 0;
         }
         
         .progress-fill {
@@ -200,6 +231,7 @@
             border-top: 1px solid #e0e0e0;
             gap: 10px;
             justify-content: center;
+            flex-shrink: 0;
         }
         
         .report-actions button {
@@ -210,6 +242,27 @@
             border-radius: 20px;
             cursor: pointer;
             margin: 0 5px;
+        }
+        
+        /* Scroll indicator */
+        .scroll-indicator {
+            position: absolute;
+            bottom: 80px;
+            right: 30px;
+            background: rgba(102, 126, 234, 0.9);
+            color: white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 10;
+        }
+        
+        .scroll-indicator:hover {
+            background: rgba(102, 126, 234, 1);
         }
     </style>
 </head>
@@ -234,6 +287,7 @@
         <!-- Chat Screen -->
         <div class="chat-screen" id="chatScreen">
             <div class="chat-messages" id="chatMessages"></div>
+            <div class="scroll-indicator" id="scrollIndicator" onclick="scrollToBottom()">↓</div>
             <div class="chat-input" id="chatInputArea">
                 <input type="text" id="userInput" placeholder="Type your message here..." onkeypress="handleKeyPress(event)">
                 <button onclick="sendMessage()">Send</button>
@@ -311,7 +365,11 @@
             
             messageDiv.appendChild(bubbleDiv);
             messagesDiv.appendChild(messageDiv);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            
+            // Auto-scroll to bottom after adding message
+            setTimeout(() => {
+                scrollToBottom();
+            }, 100);
             
             // If it's a report, store it and show report actions
             if (isReport) {
@@ -321,6 +379,35 @@
             }
         }
         
+        function scrollToBottom() {
+            const messagesDiv = document.getElementById('chatMessages');
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            hideScrollIndicator();
+        }
+        
+        function checkScroll() {
+            const messagesDiv = document.getElementById('chatMessages');
+            const isAtBottom = messagesDiv.scrollHeight - messagesDiv.scrollTop <= messagesDiv.clientHeight + 50;
+            
+            if (!isAtBottom && messagesDiv.scrollHeight > messagesDiv.clientHeight) {
+                document.getElementById('scrollIndicator').style.display = 'flex';
+            } else {
+                hideScrollIndicator();
+            }
+        }
+        
+        function hideScrollIndicator() {
+            document.getElementById('scrollIndicator').style.display = 'none';
+        }
+        
+        // Set up scroll listener
+        document.addEventListener('DOMContentLoaded', function() {
+            const messagesDiv = document.getElementById('chatMessages');
+            if (messagesDiv) {
+                messagesDiv.addEventListener('scroll', checkScroll);
+            }
+        });
+        
         async function sendMessage() {
             const input = document.getElementById('userInput');
             const message = input.value.trim();
@@ -329,6 +416,7 @@
             
             addMessage('user', message);
             input.value = '';
+            input.focus(); // Keep focus on input
             
             try {
                 const response = await fetch('/api/HealthAgent', {
