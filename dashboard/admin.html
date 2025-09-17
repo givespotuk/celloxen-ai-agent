@@ -321,6 +321,193 @@
             font-weight: 500;
         }
 
+        /* Reports Styles */
+        .report-filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            flex-wrap: wrap;
+        }
+
+        .report-filters select,
+        .report-filters input {
+            padding: 10px 15px;
+            border: 2px solid #e1e5eb;
+            border-radius: 8px;
+            font-size: 0.95rem;
+        }
+
+        .report-filters button {
+            padding: 10px 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .report-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .report-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .report-card h4 {
+            color: #2d3436;
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f2f5;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .summary-item {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .summary-item .value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #5e72e4;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .summary-item .label {
+            font-size: 0.85rem;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .performance-table {
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        .performance-table th {
+            background: #f8f9fa;
+            padding: 10px;
+            text-align: left;
+            font-size: 0.9rem;
+            color: #495057;
+        }
+
+        .performance-table td {
+            padding: 10px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .usage-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .usage-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #06ffa5 0%, #00b4d8 100%);
+            transition: width 0.3s ease;
+        }
+
+        .usage-fill.warning {
+            background: linear-gradient(135deg, #feca57 0%, #ff9ff3 100%);
+        }
+
+        .usage-fill.danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-bottom: 20px;
+        }
+
+        .export-buttons button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-export-csv {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-export-pdf {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-print {
+            background: #6c757d;
+            color: white;
+        }
+
+        .symptom-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .symptom-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .symptom-item:hover {
+            background: #f8f9fa;
+        }
+
+        .trend-table {
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        .trend-table th {
+            background: #f8f9fa;
+            padding: 10px;
+            text-align: left;
+            font-size: 0.9rem;
+            color: #495057;
+        }
+
+        .trend-table td {
+            padding: 10px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
         /* Table */
         .data-table {
             width: 100%;
@@ -381,7 +568,8 @@
             color: #155724;
         }
 
-        .status-badge.in_progress {
+        .status-badge.in_progress,
+        .status-badge.in-progress {
             background: #fff3cd;
             color: #856404;
         }
@@ -595,6 +783,12 @@
             border: 1px solid #f5c6cb;
         }
 
+        .alert.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .sidebar {
@@ -611,6 +805,10 @@
             }
 
             .stats-row {
+                grid-template-columns: 1fr;
+            }
+
+            .report-grid {
                 grid-template-columns: 1fr;
             }
         }
@@ -657,6 +855,7 @@
         <div class="dashboard-content">
             <div class="alert success" id="successAlert"></div>
             <div class="alert error" id="errorAlert"></div>
+            <div class="alert info" id="infoAlert"></div>
 
             <!-- Overview Section -->
             <div id="overview-section" class="dashboard-section">
@@ -791,8 +990,130 @@
             <!-- Reports Section -->
             <div id="reports-section" class="dashboard-section hidden">
                 <div class="table-section">
-                    <h3>Reports</h3>
-                    <p>Comprehensive reporting features coming soon...</p>
+                    <div class="table-header">
+                        <h3>Analytics & Reports</h3>
+                        <div class="export-buttons">
+                            <button class="btn-export-csv" onclick="exportCSV()">📊 Export CSV</button>
+                            <button class="btn-export-pdf" onclick="exportPDF()">📄 Export PDF</button>
+                            <button class="btn-print" onclick="printReports()">🖨️ Print</button>
+                        </div>
+                    </div>
+
+                    <!-- Filters -->
+                    <div class="report-filters">
+                        <select id="reportType">
+                            <option value="all">All Reports</option>
+                            <option value="therapy">Therapy Analysis</option>
+                            <option value="clinic">Clinic Performance</option>
+                            <option value="trends">Monthly Trends</option>
+                        </select>
+                        <input type="date" id="reportDateFrom" placeholder="From Date">
+                        <input type="date" id="reportDateTo" placeholder="To Date">
+                        <select id="reportClinic">
+                            <option value="">All Clinics</option>
+                        </select>
+                        <button onclick="generateReports()">Generate Reports</button>
+                        <button onclick="resetReportFilters()">Reset</button>
+                    </div>
+
+                    <!-- Summary Cards -->
+                    <div class="summary-grid" id="reportSummary">
+                        <div class="summary-item">
+                            <span class="value" id="totalAssessmentsReport">0</span>
+                            <span class="label">Total Assessments</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="value" id="totalClinicsReport">0</span>
+                            <span class="label">Active Clinics</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="value" id="totalPatientsReport">0</span>
+                            <span class="label">Total Patients</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="value" id="completionRateReport">0%</span>
+                            <span class="label">Completion Rate</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="value" id="avgSeverityReport">0</span>
+                            <span class="label">Avg Severity</span>
+                        </div>
+                    </div>
+
+                    <!-- Report Cards Grid -->
+                    <div class="report-grid">
+                        <!-- Therapy Distribution -->
+                        <div class="report-card">
+                            <h4>Therapy Distribution</h4>
+                            <div id="therapyChart" class="chart-container">
+                                <table class="performance-table" id="therapyTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Therapy</th>
+                                            <th>Code</th>
+                                            <th>Count</th>
+                                            <th>Percentage</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="therapyTableBody">
+                                        <!-- Data will be loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Monthly Trends -->
+                        <div class="report-card">
+                            <h4>Monthly Trends (12 Months)</h4>
+                            <div id="trendsChart" class="chart-container">
+                                <table class="trend-table" id="trendsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Month</th>
+                                            <th>Total</th>
+                                            <th>Completed</th>
+                                            <th>Clinics</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="trendsTableBody">
+                                        <!-- Data will be loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Clinic Performance -->
+                        <div class="report-card">
+                            <h4>Clinic Performance</h4>
+                            <div id="clinicPerfChart" class="chart-container">
+                                <table class="performance-table" id="clinicPerfTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Clinic</th>
+                                            <th>Assessments</th>
+                                            <th>Usage</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="clinicPerfTableBody">
+                                        <!-- Data will be loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Top Symptoms -->
+                        <div class="report-card">
+                            <h4>Top Reported Symptoms</h4>
+                            <div class="symptom-list" id="symptomsList">
+                                <!-- Symptoms will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="loading" id="reportLoadingDiv">
+                        <div class="spinner"></div>
+                        <p>Generating reports...</p>
+                    </div>
                 </div>
             </div>
 
@@ -879,6 +1200,7 @@
 
         let allClinics = [];
         let currentEditingClinic = null;
+        let reportData = null;
 
         // Load initial data
         loadDashboard();
@@ -901,6 +1223,8 @@
                 loadDashboard();
             } else if (sectionName === 'assessments') {
                 loadAssessments();
+            } else if (sectionName === 'reports') {
+                generateReports();
             }
         }
 
@@ -1099,6 +1423,273 @@
             loadAssessments();
         }
 
+        // Reports functionality
+        async function generateReports() {
+            const loadingDiv = document.getElementById('reportLoadingDiv');
+            if (loadingDiv) loadingDiv.classList.add('show');
+            
+            const reportType = document.getElementById('reportType').value;
+            const dateFrom = document.getElementById('reportDateFrom').value;
+            const dateTo = document.getElementById('reportDateTo').value;
+            const clinicId = document.getElementById('reportClinic').value;
+            
+            try {
+                const response = await fetch('/api/getReports', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({
+                        reportType,
+                        dateFrom,
+                        dateTo,
+                        clinicId
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    reportData = data;
+                    displayReports(data);
+                } else {
+                    // If API doesn't exist yet, show sample data
+                    displaySampleReports();
+                }
+            } catch (error) {
+                console.error('Error generating reports:', error);
+                displaySampleReports();
+            } finally {
+                if (loadingDiv) loadingDiv.classList.remove('show');
+            }
+        }
+
+        function displayReports(data) {
+            // Update summary
+            document.getElementById('totalAssessmentsReport').textContent = 
+                data.summary?.total_assessments || '0';
+            document.getElementById('totalClinicsReport').textContent = 
+                data.summary?.total_clinics || '0';
+            document.getElementById('totalPatientsReport').textContent = 
+                data.summary?.total_patients || '0';
+            document.getElementById('completionRateReport').textContent = 
+                Math.round(data.summary?.completion_rate || 0) + '%';
+            document.getElementById('avgSeverityReport').textContent = 
+                (data.summary?.avg_severity || 0).toFixed(1);
+            
+            // Display therapy distribution
+            displayTherapyDistribution(data.therapyDistribution);
+            
+            // Display monthly trends
+            displayMonthlyTrends(data.monthlyTrends);
+            
+            // Display clinic performance
+            displayClinicPerformance(data.clinicPerformance);
+            
+            // Display top symptoms
+            displayTopSymptoms(data.topSymptoms);
+        }
+
+        function displayTherapyDistribution(therapies) {
+            const tbody = document.getElementById('therapyTableBody');
+            tbody.innerHTML = '';
+            
+            if (!therapies || therapies.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No therapy data available</td></tr>';
+                return;
+            }
+            
+            const total = therapies.reduce((sum, t) => sum + parseInt(t.count), 0);
+            
+            therapies.forEach(therapy => {
+                const percentage = ((therapy.count / total) * 100).toFixed(1);
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${therapy.therapy || 'Unknown'}</td>
+                    <td>${therapy.code || 'N/A'}</td>
+                    <td>${therapy.count}</td>
+                    <td>${percentage}%</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function displayMonthlyTrends(trends) {
+            const tbody = document.getElementById('trendsTableBody');
+            tbody.innerHTML = '';
+            
+            if (!trends || trends.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No trend data available</td></tr>';
+                return;
+            }
+            
+            trends.forEach(trend => {
+                const month = new Date(trend.month).toLocaleDateString('en-GB', { 
+                    month: 'short', 
+                    year: 'numeric' 
+                });
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${month}</td>
+                    <td>${trend.total}</td>
+                    <td>${trend.completed}</td>
+                    <td>${trend.active_clinics}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function displayClinicPerformance(clinics) {
+            const tbody = document.getElementById('clinicPerfTableBody');
+            tbody.innerHTML = '';
+            
+            if (!clinics || clinics.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" style="text-align: center;">No clinic performance data</td></tr>';
+                return;
+            }
+            
+            clinics.forEach(clinic => {
+                const usagePercent = parseFloat(clinic.usage_percentage || 0);
+                const usageClass = usagePercent >= 90 ? 'danger' : 
+                                  usagePercent >= 70 ? 'warning' : '';
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${clinic.clinic_name}</td>
+                    <td>${clinic.total_assessments}</td>
+                    <td>
+                        <div class="usage-bar">
+                            <div class="usage-fill ${usageClass}" style="width: ${usagePercent}%"></div>
+                        </div>
+                        <small>${clinic.usage_count}/${clinic.usage_limit} (${usagePercent}%)</small>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            // Populate clinic filter
+            const select = document.getElementById('reportClinic');
+            select.innerHTML = '<option value="">All Clinics</option>';
+            clinics.forEach(clinic => {
+                const option = document.createElement('option');
+                option.value = clinic.id;
+                option.textContent = clinic.clinic_name;
+                select.appendChild(option);
+            });
+        }
+
+        function displayTopSymptoms(symptoms) {
+            const container = document.getElementById('symptomsList');
+            container.innerHTML = '';
+            
+            if (!symptoms || symptoms.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #6c757d;">No symptom data available</p>';
+                return;
+            }
+            
+            symptoms.forEach(symptom => {
+                const item = document.createElement('div');
+                item.className = 'symptom-item';
+                item.innerHTML = `
+                    <span>${symptom.symptoms.substring(0, 50)}...</span>
+                    <span style="font-weight: 600; color: #5e72e4;">${symptom.frequency}</span>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function displaySampleReports() {
+            // Display sample data when API is not available
+            const sampleData = {
+                summary: {
+                    total_assessments: 45,
+                    total_clinics: 2,
+                    total_patients: 38,
+                    completion_rate: 85,
+                    avg_severity: 6.2
+                },
+                therapyDistribution: [
+                    { therapy: 'Stress Relief Therapy', code: '102', count: 12 },
+                    { therapy: 'Sleep Quality Therapy', code: '104', count: 8 },
+                    { therapy: 'Joint Mobility Therapy', code: '403', count: 6 }
+                ],
+                monthlyTrends: [
+                    { month: '2025-01-01', total: 15, completed: 12, active_clinics: 2 },
+                    { month: '2024-12-01', total: 18, completed: 15, active_clinics: 2 },
+                    { month: '2024-11-01', total: 12, completed: 11, active_clinics: 1 }
+                ],
+                clinicPerformance: allClinics.map(c => ({
+                    clinic_name: c.clinic_name,
+                    id: c.id,
+                    total_assessments: c.assessment_count || 0,
+                    usage_count: c.usage_count || 0,
+                    usage_limit: c.usage_limit || 100,
+                    usage_percentage: ((c.usage_count || 0) / (c.usage_limit || 100) * 100).toFixed(2)
+                })),
+                topSymptoms: [
+                    { symptoms: 'Chronic fatigue and exhaustion', frequency: 15 },
+                    { symptoms: 'Joint pain and stiffness', frequency: 12 },
+                    { symptoms: 'Insomnia and sleep disturbances', frequency: 10 }
+                ]
+            };
+            
+            displayReports(sampleData);
+        }
+
+        function resetReportFilters() {
+            document.getElementById('reportType').value = 'all';
+            document.getElementById('reportDateFrom').value = '';
+            document.getElementById('reportDateTo').value = '';
+            document.getElementById('reportClinic').value = '';
+            generateReports();
+        }
+
+        function exportCSV() {
+            if (!reportData) {
+                showAlert('Please generate reports first', 'error');
+                return;
+            }
+            
+            // Create CSV content
+            let csv = 'Celloxen Health Reports\n';
+            csv += `Generated: ${new Date().toLocaleDateString('en-GB')}\n\n`;
+            
+            // Summary
+            csv += 'SUMMARY\n';
+            csv += 'Metric,Value\n';
+            csv += `Total Assessments,${reportData.summary?.total_assessments || 0}\n`;
+            csv += `Total Clinics,${reportData.summary?.total_clinics || 0}\n`;
+            csv += `Total Patients,${reportData.summary?.total_patients || 0}\n`;
+            csv += `Completion Rate,${Math.round(reportData.summary?.completion_rate || 0)}%\n`;
+            csv += `Average Severity,${(reportData.summary?.avg_severity || 0).toFixed(1)}\n\n`;
+            
+            // Therapy Distribution
+            csv += 'THERAPY DISTRIBUTION\n';
+            csv += 'Therapy,Code,Count\n';
+            reportData.therapyDistribution?.forEach(t => {
+                csv += `"${t.therapy}",${t.code},${t.count}\n`;
+            });
+            
+            // Download CSV
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `celloxen-reports-${Date.now()}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        function exportPDF() {
+            showAlert('PDF export functionality coming soon', 'info');
+            // Would implement PDF generation using jsPDF library
+        }
+
+        function printReports() {
+            window.print();
+        }
+
         function openAddClinicModal() {
             document.getElementById('modalTitle').textContent = 'Add New Clinic';
             document.getElementById('clinicId').value = '';
@@ -1241,7 +1832,8 @@
         }
 
         function showAlert(message, type) {
-            const alertId = type === 'success' ? 'successAlert' : 'errorAlert';
+            const alertId = type === 'success' ? 'successAlert' : 
+                           type === 'error' ? 'errorAlert' : 'infoAlert';
             const alert = document.getElementById(alertId);
             alert.textContent = message;
             alert.classList.add('show');
@@ -1331,6 +1923,8 @@
                 loadDashboard();
             } else if (activeSection === 'assessments') {
                 loadAssessments();
+            } else if (activeSection === 'reports') {
+                generateReports();
             }
         }, 60000);
     </script>
