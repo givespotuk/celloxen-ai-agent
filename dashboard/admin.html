@@ -474,6 +474,47 @@
             color: white;
         }
 
+        /* Settings Styles */
+        .settings-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        .settings-group {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #5e72e4;
+        }
+
+        .settings-group h4 {
+            margin-bottom: 20px;
+        }
+
+        .setting-input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e1e5eb;
+            border-radius: 6px;
+            font-size: 0.95rem;
+        }
+
+        .setting-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .settings-actions button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
         .symptom-list {
             max-height: 300px;
             overflow-y: auto;
@@ -1121,7 +1162,95 @@
             <div id="settings-section" class="dashboard-section hidden">
                 <div class="table-section">
                     <h3>System Settings</h3>
-                    <p>System configuration options coming soon...</p>
+                    
+                    <!-- Settings Form -->
+                    <div class="settings-container">
+                        <!-- General Settings -->
+                        <div class="settings-group">
+                            <h4 style="color: #5e72e4; margin-bottom: 20px;">General Settings</h4>
+                            <div class="form-group">
+                                <label>Platform Name</label>
+                                <input type="text" id="platform_name" class="setting-input">
+                            </div>
+                            <div class="form-group">
+                                <label>Contact Email</label>
+                                <input type="email" id="contact_email" class="setting-input">
+                            </div>
+                            <div class="form-group">
+                                <label>Timezone</label>
+                                <select id="timezone" class="setting-input">
+                                    <option value="Europe/London">Europe/London</option>
+                                    <option value="Europe/Paris">Europe/Paris</option>
+                                    <option value="America/New_York">America/New York</option>
+                                    <option value="America/Los_Angeles">America/Los Angeles</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Clinic Defaults -->
+                        <div class="settings-group">
+                            <h4 style="color: #5e72e4; margin-bottom: 20px;">Clinic Defaults</h4>
+                            <div class="form-group">
+                                <label>Default Usage Limit</label>
+                                <input type="number" id="default_usage_limit" class="setting-input">
+                            </div>
+                            <div class="form-group">
+                                <label>Trial Duration (days)</label>
+                                <input type="number" id="trial_duration_days" class="setting-input">
+                            </div>
+                        </div>
+
+                        <!-- Email Configuration -->
+                        <div class="settings-group">
+                            <h4 style="color: #5e72e4; margin-bottom: 20px;">Email Configuration</h4>
+                            <div class="form-group">
+                                <label>SMTP Host</label>
+                                <input type="text" id="smtp_host" class="setting-input" placeholder="smtp.gmail.com">
+                            </div>
+                            <div class="form-group">
+                                <label>SMTP Port</label>
+                                <input type="number" id="smtp_port" class="setting-input" placeholder="587">
+                            </div>
+                            <div class="form-group">
+                                <label>SMTP Username</label>
+                                <input type="text" id="smtp_user" class="setting-input">
+                            </div>
+                            <div class="form-group">
+                                <label>SMTP Password</label>
+                                <input type="password" id="smtp_password" class="setting-input">
+                            </div>
+                            <div class="form-group">
+                                <label>From Email</label>
+                                <input type="email" id="smtp_from_email" class="setting-input">
+                            </div>
+                        </div>
+
+                        <!-- System Settings -->
+                        <div class="settings-group">
+                            <h4 style="color: #5e72e4; margin-bottom: 20px;">System Settings</h4>
+                            <div class="form-group">
+                                <label>Backup Retention (days)</label>
+                                <input type="number" id="backup_retention_days" class="setting-input">
+                            </div>
+                            <div class="form-group">
+                                <label>Maintenance Mode</label>
+                                <select id="maintenance_mode" class="setting-input">
+                                    <option value="false">Disabled</option>
+                                    <option value="true">Enabled</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Last Backup</label>
+                                <input type="text" id="last_backup_date" class="setting-input" readonly style="background: #f8f9fa;">
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="settings-actions" style="margin-top: 30px; display: flex; gap: 15px;">
+                            <button class="btn-save" onclick="saveSettings()">💾 Save Settings</button>
+                            <button class="btn-action" style="background: #6c757d; color: white;" onclick="loadSettings()">🔄 Reset</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1225,6 +1354,8 @@
                 loadAssessments();
             } else if (sectionName === 'reports') {
                 generateReports();
+            } else if (sectionName === 'settings') {
+                loadSettings();
             }
         }
 
@@ -1927,6 +2058,73 @@
                 generateReports();
             }
         }, 60000);
+
+        // Settings Management Functions
+        async function loadSettings() {
+            try {
+                const response = await fetch('/api/getSettings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Populate form fields with current settings
+                    Object.keys(data.settings).forEach(key => {
+                        const element = document.getElementById(key);
+                        if (element) {
+                            element.value = data.settings[key].value || '';
+                        }
+                    });
+                    showAlert('Settings loaded successfully', 'success');
+                } else {
+                    showAlert('Error loading settings', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading settings:', error);
+                showAlert('Error loading settings', 'error');
+            }
+        }
+
+        async function saveSettings() {
+            const settingInputs = document.querySelectorAll('.setting-input');
+            const settings = {};
+            
+            settingInputs.forEach(input => {
+                if (input.id && input.id !== 'last_backup_date') {
+                    settings[input.id] = input.value;
+                }
+            });
+            
+            try {
+                const response = await fetch('/api/updateSettings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({
+                        settings: settings,
+                        updatedBy: user.email || 'admin'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert('Settings saved successfully', 'success');
+                } else {
+                    showAlert('Error saving settings', 'error');
+                }
+            } catch (error) {
+                console.error('Error saving settings:', error);
+                showAlert('Error saving settings', 'error');
+            }
+        }
     </script>
 </body>
 </html>
