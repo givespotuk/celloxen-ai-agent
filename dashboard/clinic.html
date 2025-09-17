@@ -549,6 +549,27 @@
             font-size: 1.2em;
         }
 
+        /* Patient History Styles */
+        .patient-info-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .patient-info-card p {
+            margin: 8px 0;
+            color: #495057;
+        }
+
+        .assessment-history-item {
+            padding: 15px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            background: white;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .sidebar {
@@ -709,6 +730,39 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Patients List Table -->
+                <div class="table-section">
+                    <div class="table-header">
+                        <h3>Registered Patients</h3>
+                        <button class="filter-btn" onclick="showSection('patients'); return false;">Manage Patients</button>
+                    </div>
+
+                    <div class="table-wrapper">
+                        <table class="data-table" id="dashboardPatientsTable">
+                            <thead>
+                                <tr>
+                                    <th>Patient ID</th>
+                                    <th>Name</th>
+                                    <th>Phone</th>
+                                    <th>Date of Birth</th>
+                                    <th>Registered</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dashboardPatientsBody">
+                                <!-- Patients will be loaded here -->
+                            </tbody>
+                        </table>
+
+                        <div class="empty-state" id="patientsEmptyState" style="display: none;">
+                            <i class="icon" style="font-size: 3rem;">◉</i>
+                            <h4>No Patients Registered</h4>
+                            <p>Register your first patient to see them here</p>
+                            <button class="filter-btn" style="background: #28a745;" onclick="showSection('patients'); showNewPatientForm(); return false;">Register Patient</button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Assessments Section -->
@@ -829,6 +883,7 @@
         // Initialize variables
         let currentFilter = 'all';
         let allAssessments = [];
+        let allPatients = [];
         let refreshTimer = null;
         let hasRedirected = false;
         let selectedPatient = null;
@@ -859,6 +914,7 @@
             try {
                 const clinicId = user.clinicId || user.clinic_id || user.id || '1';
                 
+                // Load clinic stats
                 const response = await fetch('/api/getClinicStats', {
                     method: 'POST',
                     headers: {
@@ -895,6 +951,23 @@
                     allAssessments = stats.recentAssessments || [];
                     displayDashboardAssessments(allAssessments);
                     displayAllAssessments(allAssessments);
+                }
+
+                // Load patients list
+                const patientsResponse = await fetch('/api/getAllPatients', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        clinicId: clinicId
+                    })
+                });
+
+                if (patientsResponse.ok) {
+                    const patientsData = await patientsResponse.json();
+                    allPatients = patientsData.patients || [];
+                    displayDashboardPatients(allPatients);
                 }
                 
             } catch (error) {
@@ -937,6 +1010,60 @@
                 table.style.opacity = '1';
                 table.style.transition = 'opacity 0.3s ease';
             }, 100);
+        }
+
+        function displayDashboardPatients(patients) {
+            const tbody = document.getElementById('dashboardPatientsBody');
+            const table = document.getElementById('dashboardPatientsTable');
+            const emptyState = document.getElementById('patientsEmptyState');
+            
+            if (!tbody || !table || !emptyState) return;
+            
+            tbody.innerHTML = '';
+            
+            if (!patients || patients.length === 0) {
+                table.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            table.style.display = 'table';
+            emptyState.style.display = 'none';
+            
+            patients.forEach(patient => {
+                const row = document.createElement('tr');
+                const registeredDate = patient.created_at ? new Date(patient.created_at).toLocaleDateString('en-GB') : 'N/A';
+                const dob = patient.date_of_birth ? new Date(patient.date_of_birth).toLocaleDateString('en-GB') : 'N/A';
+                const patientName = patient.full_name || (patient.first_name + ' ' + patient.last_name);
+                
+                row.innerHTML = `
+                    <td>${patient.patient_id}</td>
+                    <td class="patient-name">${patientName}</td>
+                    <td>${patient.phone || 'N/A'}</td>
+                    <td>${dob}</td>
+                    <td>${registeredDate}</td>
+                    <td>
+                        <div class="action-links">
+                            <a onclick="viewPatientDetails('${patient.patient_id}')">View</a>
+                            <a onclick="startAssessmentForPatientDirect('${patient.patient_id}', '${patientName.replace(/'/g, "\\'")}')">Start Assessment</a>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function viewPatientDetails(patientId) {
+            showSection('patients');
+            // Trigger search for this specific patient
+            document.getElementById('patientSearch').value = patientId;
+            searchPatient();
+        }
+
+        function startAssessmentForPatientDirect(patientId, patientName) {
+            sessionStorage.setItem('patientId', patientId);
+            sessionStorage.setItem('patientName', patientName);
+            startNewAssessment();
         }
 
         function displayAllAssessments(assessments) {
@@ -1078,7 +1205,7 @@
             
             listDiv.innerHTML = patients.map(p => `
                 <div style="padding: 10px; border: 1px solid #ddd; margin: 5px 0; cursor: pointer;" 
-                     onclick="selectPatient('${p.patient_id}', '${p.full_name || (p.first_name + ' ' + p.last_name)}')">
+                     onclick="selectPatient('${p.patient_id}', '${(p.full_name || (p.first_name + ' ' + p.last_name)).replace(/'/g, "\\'")}')">
                     <strong>${p.full_name || (p.first_name + ' ' + p.last_name)}</strong> - ${p.patient_id}<br>
                     Phone: ${p.phone || 'N/A'} | DOB: ${p.date_of_birth ? new Date(p.date_of_birth).toLocaleDateString('en-GB') : 'N/A'}
                 </div>
@@ -1103,13 +1230,72 @@
             try {
                 const clinicId = user.clinicId || user.clinic_id || user.id;
                 
-                // This will need a new API endpoint to fetch patient assessment history
-                historyContent.innerHTML = `
-                    <p>Patient ID: ${patientId}</p>
-                    <p>Previous assessments will be shown here once the history endpoint is implemented.</p>
-                `;
+                const response = await fetch('/api/getPatientHistory', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        patientId: patientId,
+                        clinicId: clinicId
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const patient = data.patient || {};
+                    const assessments = data.assessments || [];
+                    
+                    let historyHTML = `
+                        <div class="patient-info-card">
+                            <p><strong>Patient ID:</strong> ${patient.patient_id || patientId}</p>
+                            <p><strong>Name:</strong> ${patient.full_name || patient.first_name + ' ' + patient.last_name || 'N/A'}</p>
+                            <p><strong>Date of Birth:</strong> ${patient.date_of_birth ? new Date(patient.date_of_birth).toLocaleDateString('en-GB') : 'N/A'}</p>
+                            <p><strong>Phone:</strong> ${patient.phone || 'N/A'}</p>
+                            <p><strong>Email:</strong> ${patient.email || 'N/A'}</p>
+                            <p><strong>NHS Number:</strong> ${patient.nhs_number || 'N/A'}</p>
+                            <p><strong>Registered:</strong> ${patient.created_at ? new Date(patient.created_at).toLocaleDateString('en-GB') : 'N/A'}</p>
+                        </div>
+                        <h5 style="margin-top: 20px; margin-bottom: 15px;">Assessment History:</h5>
+                    `;
+
+                    if (assessments.length > 0) {
+                        assessments.forEach(assessment => {
+                            const startDate = new Date(assessment.started_at).toLocaleDateString('en-GB');
+                            const statusClass = assessment.status === 'completed' ? 'completed' : 'in-progress';
+                            historyHTML += `
+                                <div class="assessment-history-item">
+                                    <p><strong>Date:</strong> ${startDate}</p>
+                                    <p><strong>Session ID:</strong> ${assessment.session_id}</p>
+                                    <p><strong>Status:</strong> <span class="assessment-status ${statusClass}">${assessment.status}</span></p>
+                                    <p><strong>Therapy:</strong> ${assessment.recommended_therapy_name || 'N/A'}</p>
+                                    ${assessment.status === 'completed' ? 
+                                        `<a href="#" onclick="downloadReport('${assessment.session_id}'); return false;" style="color: #00b4d8;">Download Report</a>` : 
+                                        ''}
+                                </div>
+                            `;
+                        });
+                    } else {
+                        historyHTML += '<p style="color: #6c757d;">No previous assessments found for this patient.</p>';
+                    }
+
+                    historyContent.innerHTML = historyHTML;
+                } else {
+                    historyContent.innerHTML = `
+                        <div class="patient-info-card">
+                            <p><strong>Patient ID:</strong> ${patientId}</p>
+                            <p>Unable to load complete patient history at this time.</p>
+                        </div>
+                    `;
+                }
             } catch (error) {
-                historyContent.innerHTML = '<p>Error loading patient history</p>';
+                console.error('Error loading patient history:', error);
+                historyContent.innerHTML = `
+                    <div class="patient-info-card">
+                        <p><strong>Patient ID:</strong> ${patientId}</p>
+                        <p>Error loading patient history. Please try again.</p>
+                    </div>
+                `;
             }
         }
 
@@ -1160,6 +1346,8 @@
                     hideNewPatientForm();
                     document.getElementById('newPatientForm').querySelectorAll('input').forEach(input => input.value = '');
                     document.getElementById('gender').value = '';
+                    // Reload dashboard to show new patient
+                    loadDashboard();
                     startNewAssessment();
                 } else {
                     showAlert('Registration failed: ' + (data.message || 'Unknown error'), 'error');
@@ -1211,7 +1399,7 @@
                 targetSection.classList.add('active');
             }
             
-            if (sectionName === 'assessments') {
+            if (sectionName === 'assessments' || sectionName === 'dashboard') {
                 loadDashboard();
             }
         }
