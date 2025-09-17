@@ -10,24 +10,20 @@ const pool = new Pool({
 });
 
 module.exports = async function (context, req) {
+    context.log('addPatient called with:', req.body);
+    
     try {
-        const { clinicId, firstName, lastName, dateOfBirth, gender, email, phone, nhsNumber, postcode } = req.body;
+        const { clinicId, firstName, lastName, phone } = req.body;
         
-        const patientId = 'PAT-' + Date.now().toString().slice(-6);
-        const fullName = `${firstName} ${lastName}`;
-        
+        // Simple insert with only required fields
         const query = `
-            INSERT INTO patients (
-                clinic_id, patient_id, first_name, last_name, full_name,
-                date_of_birth, gender, email, phone, nhs_number, postcode, created_at
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CURRENT_TIMESTAMP)
-            RETURNING id, patient_id, full_name
+            INSERT INTO patients (clinic_id, first_name, last_name, full_name, phone, created_at) 
+            VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+            RETURNING id, full_name
         `;
         
-        const values = [clinicId, patientId, firstName, lastName, fullName, 
-                       dateOfBirth, gender, email, phone, nhsNumber, postcode];
-        
-        const result = await pool.query(query, values);
+        const fullName = `${firstName} ${lastName}`;
+        const result = await pool.query(query, [clinicId, firstName, lastName, fullName, phone]);
         
         context.res = {
             status: 200,
@@ -37,12 +33,12 @@ module.exports = async function (context, req) {
             }
         };
     } catch (error) {
+        context.log.error('Error:', error);
         context.res = {
             status: 500,
             body: {
                 success: false,
-                message: 'Failed to register patient',
-                error: error.message
+                message: error.message
             }
         };
     }
