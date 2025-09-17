@@ -741,7 +741,6 @@
         <div class="top-nav">
             <h1 class="breadcrumb">Dashboard</h1>
             <div class="top-actions">
-                <button class="start-assessment-btn" onclick="startNewAssessment()">+ New Assessment</button>
                 <div class="user-info">
                     <span class="user-name" id="userName">Clinic User</span>
                     <button class="logout-btn" onclick="logout()">Logout</button>
@@ -1561,9 +1560,11 @@
                 showAlert('Failed to start assessment', 'error');
             }
         }
-
+        
         function addChatMessage(message, sender) {
             const chatDiv = document.getElementById('assessmentChat');
+            if (!chatDiv) return;
+        
             const msgDiv = document.createElement('div');
             msgDiv.className = `chat-message ${sender}`;
         
@@ -1576,8 +1577,8 @@
             chatDiv.appendChild(msgDiv);
             chatDiv.scrollTop = chatDiv.scrollHeight;
         }
-
-        async function sendAssessmentMessage() {
+        
+        function sendAssessmentMessage() {
             const input = document.getElementById('assessmentInput');
             const message = input.value.trim();
             if (!message || !currentAssessmentSession) return;
@@ -1585,18 +1586,17 @@
             addChatMessage(message, 'user');
             input.value = '';
         
-            try {
-                const response = await fetch('/api/embeddedHealthAgent', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        action: 'chat',
-                        sessionId: currentAssessmentSession,
-                        message: message
-                    })
-                });
-        
-                const data = await response.json();
+            fetch('/api/embeddedHealthAgent', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    action: 'chat',
+                    sessionId: currentAssessmentSession,
+                    message: message
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
                 addChatMessage(data.message, 'assistant');
         
                 if (data.phase === 'report_complete') {
@@ -1606,17 +1606,24 @@
                         loadDashboard();
                     }, 3000);
                 }
-            } catch (error) {
+            })
+            .catch(error => {
                 console.error('Error sending message:', error);
                 showAlert('Failed to send message', 'error');
-            }
+            });
         }
-
+        
         function cancelAssessment() {
             if (confirm('Are you sure you want to cancel this assessment?')) {
                 document.getElementById('embeddedAssessmentSection').style.display = 'none';
                 document.getElementById('patientDetailsSection').style.display = 'block';
                 currentAssessmentSession = null;
+        
+                // Clear the chat
+                const chatDiv = document.getElementById('assessmentChat');
+                if (chatDiv) chatDiv.innerHTML = '';
+                const input = document.getElementById('assessmentInput');
+                if (input) input.value = '';
             }
         }
 
@@ -1741,7 +1748,7 @@
 
         function startNewAssessment() {
             showSection('patients');
-            showNewPatientForm();
+            showAlert('Please select a patient first or register a new patient', 'info');
         }
 
         // Patient Search Functions
