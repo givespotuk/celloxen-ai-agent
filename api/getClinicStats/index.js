@@ -21,13 +21,18 @@ module.exports = async function (context, req) {
         
         const clinic = clinicResult.rows[0] || {};
         
-        // Count patients for this clinic
+        // Count patients with last assessment date
         const patientsResult = await pool.query(
-            'SELECT COUNT(*) as count FROM patients WHERE clinic_id = $1',
+            `SELECT 
+                COUNT(*) as count,
+                COUNT(last_assessment_date) as assessed_count,
+                MAX(last_assessment_date) as last_assessment
+             FROM patients 
+             WHERE clinic_id = $1 AND (status IS NULL OR status = 'active')`,
             [clinicId]
         );
         
-        // Count assessments for this clinic
+        // Count assessments
         const assessmentsResult = await pool.query(
             'SELECT COUNT(*) as count FROM ai_agent_sessions WHERE clinic_id = $1',
             [clinicId]
@@ -39,13 +44,19 @@ module.exports = async function (context, req) {
             [clinicId, 'in_progress']
         );
         
-        // Get recent assessments
+        // Get recent assessments with patient last visit info
         const recentAssessments = await pool.query(
-            `SELECT session_id, patient_name, status, started_at, 
-                    recommended_therapy_name as therapy
-             FROM ai_agent_sessions 
-             WHERE clinic_id = $1 
-             ORDER BY started_at DESC 
+            `SELECT 
+                s.session_id, 
+                s.patient_name, 
+                s.status, 
+                s.started_at,
+                s.recommended_therapy_name as therapy,
+                p.last_assessment_date
+             FROM ai_agent_sessions s
+             LEFT JOIN patients p ON p.full_name = s.patient_name AND p.clinic_id = s.clinic_id
+             WHERE s.clinic_id = $1 
+             ORDER BY s.started_at DESC 
              LIMIT 10`,
             [clinicId]
         );
@@ -53,6 +64,8 @@ module.exports = async function (context, req) {
         context.res = {
             body: {
                 totalPatients: parseInt(patientsResult.rows[0].count) || 0,
+                assessedPatients: parseInt(patientsResult.rows[0].assessed_count) || 0,
+                lastPatientAssessment: patientsResult.rows[0].last_assessment,
                 totalAssessments: parseInt(assessmentsResult.rows[0].count) || 0,
                 pendingReports: parseInt(pendingResult.rows[0].count) || 0,
                 usageCount: clinic.usage_count || 0,
@@ -67,6 +80,7 @@ module.exports = async function (context, req) {
             status: 500,
             body: {
                 totalPatients: 0,
+                assessedPatients: 0,
                 totalAssessments: 0,
                 pendingReports: 0,
                 usageCount: 0,
