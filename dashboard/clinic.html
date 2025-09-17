@@ -92,6 +92,9 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
 
         .breadcrumb {
@@ -155,11 +158,13 @@
         /* Dashboard Content */
         .dashboard-content {
             padding: 30px;
+            position: relative;
         }
 
         /* Section Content */
         .section-content {
             display: none;
+            min-height: 400px; /* Prevents layout shifts */
         }
 
         .section-content.active {
@@ -180,6 +185,7 @@
             padding: 25px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
+            min-height: 160px; /* Fixed minimum height */
         }
 
         .stat-card:hover {
@@ -252,6 +258,7 @@
             padding: 25px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
             margin-bottom: 30px;
+            min-height: 200px; /* Fixed minimum height */
         }
 
         .quick-actions h3 {
@@ -300,6 +307,7 @@
             padding: 25px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
             margin-bottom: 30px;
+            min-height: 400px; /* Fixed minimum height */
         }
 
         .table-header {
@@ -446,6 +454,7 @@
             text-align: center;
             padding: 60px 20px;
             color: #6c757d;
+            min-height: 300px; /* Fixed height */
         }
 
         .empty-state i {
@@ -463,16 +472,23 @@
             margin-bottom: 20px;
         }
 
-        /* Alert Messages */
+        /* Alert Messages - FIXED POSITIONING */
         .alert {
+            position: fixed;
+            top: 80px;
+            right: 30px;
             padding: 12px 20px;
             border-radius: 8px;
-            margin-bottom: 20px;
-            display: none;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            z-index: 2000;
+            max-width: 400px;
         }
 
         .alert.show {
-            display: block;
+            opacity: 1;
+            visibility: visible;
         }
 
         .alert.success {
@@ -498,6 +514,7 @@
             display: none;
             text-align: center;
             padding: 40px;
+            min-height: 200px; /* Fixed height */
         }
 
         .loading.show {
@@ -517,6 +534,12 @@
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+
+        /* Table wrapper to prevent jumping */
+        .table-wrapper {
+            min-height: 300px;
+            position: relative;
         }
 
         /* Responsive */
@@ -584,12 +607,13 @@
             </div>
         </div>
 
+        <!-- Alert Messages - Fixed Position -->
+        <div class="alert success" id="successAlert"></div>
+        <div class="alert error" id="errorAlert"></div>
+        <div class="alert info" id="infoAlert"></div>
+
         <!-- Dashboard Content -->
         <div class="dashboard-content">
-            <div class="alert success" id="successAlert"></div>
-            <div class="alert error" id="errorAlert"></div>
-            <div class="alert info" id="infoAlert"></div>
-
             <!-- Dashboard Section -->
             <div id="dashboard-section" class="section-content active">
                 <!-- Stats Cards -->
@@ -648,32 +672,34 @@
                         <h3>Recent Assessments</h3>
                     </div>
 
-                    <div class="loading" id="loadingDiv">
-                        <div class="spinner"></div>
-                        <p>Loading assessments...</p>
-                    </div>
+                    <div class="table-wrapper">
+                        <div class="loading" id="loadingDiv">
+                            <div class="spinner"></div>
+                            <p>Loading assessments...</p>
+                        </div>
 
-                    <table class="data-table" id="dashboardAssessmentsTable" style="display: none;">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Patient Name</th>
-                                <th>Assessment ID</th>
-                                <th>Status</th>
-                                <th>Therapy</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="dashboardAssessmentsBody">
-                            <!-- Data will be loaded here -->
-                        </tbody>
-                    </table>
+                        <table class="data-table" id="dashboardAssessmentsTable" style="opacity: 0;">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Patient Name</th>
+                                    <th>Assessment ID</th>
+                                    <th>Status</th>
+                                    <th>Therapy</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dashboardAssessmentsBody">
+                                <!-- Data will be loaded here -->
+                            </tbody>
+                        </table>
 
-                    <div class="empty-state" id="dashboardEmptyState" style="display: none;">
-                        <i>📋</i>
-                        <h4>No Assessments Yet</h4>
-                        <p>Start your first assessment to see it here</p>
-                        <button class="start-assessment-btn" onclick="startNewAssessment()">Start Assessment</button>
+                        <div class="empty-state" id="dashboardEmptyState" style="display: none;">
+                            <i>📋</i>
+                            <h4>No Assessments Yet</h4>
+                            <p>Start your first assessment to see it here</p>
+                            <button class="start-assessment-btn" onclick="startNewAssessment()">Start Assessment</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -696,26 +722,28 @@
                         <button class="filter-btn" onclick="searchAssessments()">Search</button>
                     </div>
 
-                    <table class="data-table" id="assessmentsTable">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Patient Name</th>
-                                <th>Assessment ID</th>
-                                <th>Status</th>
-                                <th>Therapy</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="assessmentsTableBody">
-                            <!-- Data will be loaded here -->
-                        </tbody>
-                    </table>
+                    <div class="table-wrapper">
+                        <table class="data-table" id="assessmentsTable">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Patient Name</th>
+                                    <th>Assessment ID</th>
+                                    <th>Status</th>
+                                    <th>Therapy</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="assessmentsTableBody">
+                                <!-- Data will be loaded here -->
+                            </tbody>
+                        </table>
 
-                    <div class="empty-state" id="assessmentsEmptyState" style="display: none;">
-                        <i>📋</i>
-                        <h4>No Assessments Found</h4>
-                        <p>Try adjusting your filters or search criteria</p>
+                        <div class="empty-state" id="assessmentsEmptyState" style="display: none;">
+                            <i>📋</i>
+                            <h4>No Assessments Found</h4>
+                            <p>Try adjusting your filters or search criteria</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -756,14 +784,15 @@
         // Set clinic info
         const clinicId = user.clinicId || user.clinic_id;
         if (!clinicId) {
-        showAlert('Error: Clinic ID not found. Please login again.', 'error');
-        window.location.href = '/login.html';
+            showAlert('Error: Clinic ID not found. Please login again.', 'error');
+            window.location.href = '/login.html';
         }
         document.getElementById('clinicNameDisplay').textContent = user.clinicName || user.displayName || 'Clinic';
         document.getElementById('userName').textContent = user.displayName || 'Clinic User';
 
         let currentFilter = 'all';
         let allAssessments = [];
+        let refreshTimer = null;
 
         // Load initial data
         loadDashboard();
@@ -786,12 +815,12 @@
 
                 const stats = await response.json();
                 
-                // Update stats
-                document.getElementById('totalPatients').textContent = stats.totalPatients || '0';
-                document.getElementById('totalAssessments').textContent = stats.totalAssessments || '0';
-                document.getElementById('pendingReports').textContent = stats.pendingReports || '0';
-                document.getElementById('usageCount').textContent = stats.usageCount || '0';
-                document.getElementById('usageLimit').textContent = stats.usageLimit || '100';
+                // Update stats WITHOUT causing layout shifts
+                updateStatValue('totalPatients', stats.totalPatients || '0');
+                updateStatValue('totalAssessments', stats.totalAssessments || '0');
+                updateStatValue('pendingReports', stats.pendingReports || '0');
+                updateStatValue('usageCount', stats.usageCount || '0');
+                updateStatValue('usageLimit', stats.usageLimit || '100');
                 
                 // Update usage progress bar
                 const usage = ((stats.usageCount || 0) / (stats.usageLimit || 100)) * 100;
@@ -815,24 +844,39 @@
             }
         }
 
+        function updateStatValue(elementId, value) {
+            const element = document.getElementById(elementId);
+            if (element && element.textContent !== value) {
+                element.textContent = value;
+            }
+        }
+
         function displayDashboardAssessments(assessments) {
             const tbody = document.getElementById('dashboardAssessmentsBody');
+            const table = document.getElementById('dashboardAssessmentsTable');
+            const emptyState = document.getElementById('dashboardEmptyState');
+            
             tbody.innerHTML = '';
             
             if (!assessments || assessments.length === 0) {
-                document.getElementById('dashboardAssessmentsTable').style.display = 'none';
-                document.getElementById('dashboardEmptyState').style.display = 'block';
+                table.style.opacity = '0';
+                emptyState.style.display = 'block';
                 return;
             }
             
-            document.getElementById('dashboardAssessmentsTable').style.display = 'table';
-            document.getElementById('dashboardEmptyState').style.display = 'none';
+            emptyState.style.display = 'none';
             
             // Show only recent 5 assessments on dashboard
             assessments.slice(0, 5).forEach(assessment => {
                 const row = createAssessmentRow(assessment);
                 tbody.appendChild(row);
             });
+            
+            // Fade in the table
+            setTimeout(() => {
+                table.style.opacity = '1';
+                table.style.transition = 'opacity 0.3s ease';
+            }, 100);
         }
 
         function displayAllAssessments(assessments) {
@@ -930,17 +974,14 @@
 
         function viewAssessment(sessionId) {
             showAlert(`Assessment details for ${sessionId} - Feature coming soon`, 'info');
-            // TODO: Implement view assessment details
         }
 
         function downloadReport(sessionId) {
             showAlert(`Download report for ${sessionId} - Feature coming soon`, 'info');
-            // TODO: Implement report download
         }
 
         function downloadAllReports() {
             showAlert('Export functionality coming soon', 'info');
-            // TODO: Implement data export
         }
 
         function showSection(sectionName) {
@@ -956,7 +997,7 @@
             document.querySelector('.breadcrumb').textContent = 
                 sectionName.charAt(0).toUpperCase() + sectionName.slice(1);
             
-            // Show/hide sections
+            // Show/hide sections with no animation to prevent jumping
             document.querySelectorAll('.section-content').forEach(section => {
                 section.classList.remove('active');
             });
@@ -981,6 +1022,11 @@
         }
 
         function logout() {
+            // Clear refresh timer
+            if (refreshTimer) {
+                clearInterval(refreshTimer);
+            }
+            
             localStorage.removeItem('token');
             localStorage.removeItem('user');
             sessionStorage.clear();
@@ -995,8 +1041,14 @@
             });
         });
 
-        // Refresh data every 60 seconds
-        setInterval(loadDashboard, 60000);
+        // Refresh data every 60 seconds with smooth update
+        refreshTimer = setInterval(() => {
+            // Only refresh if on dashboard section to minimize disruption
+            const dashboardSection = document.getElementById('dashboard-section');
+            if (dashboardSection && dashboardSection.classList.contains('active')) {
+                loadDashboard();
+            }
+        }, 60000);
 
         // Check for returning from assessment
         window.addEventListener('load', () => {
