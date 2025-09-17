@@ -754,7 +754,11 @@
         }
 
         // Set clinic info
-        const clinicId = user.clinicId || user.clinic_id || (user.role === 'clinic' ? '2' : null);
+        const clinicId = user.clinicId || user.clinic_id;
+        if (!clinicId) {
+        showAlert('Error: Clinic ID not found. Please login again.', 'error');
+        window.location.href = '/login.html';
+        }
         document.getElementById('clinicNameDisplay').textContent = user.clinicName || user.displayName || 'Clinic';
         document.getElementById('userName').textContent = user.displayName || 'Clinic User';
 
