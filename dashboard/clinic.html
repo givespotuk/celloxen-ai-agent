@@ -1110,8 +1110,51 @@
             document.getElementById('newPatientForm').style.display = 'none';
         }
 
-        function registerPatient() {
-            showAlert('Patient registration coming soon', 'info');
+        async function registerPatient() {
+            const firstName = document.getElementById('firstName').value;
+            const lastName = document.getElementById('lastName').value;
+            const phone = document.getElementById('patientPhone').value;
+            
+            if (!firstName || !lastName || !phone) {
+                showAlert('Please fill required fields', 'error');
+                return;
+            }
+            
+            const clinicId = user.clinicId || user.clinic_id || user.id;
+            
+            try {
+                const response = await fetch('/api/addPatient', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        clinicId, 
+                        firstName, 
+                        lastName,
+                        dateOfBirth: document.getElementById('dateOfBirth').value,
+                        gender: document.getElementById('gender').value,
+                        email: document.getElementById('patientEmail').value,
+                        phone, 
+                        nhsNumber: document.getElementById('nhsNumber').value,
+                        postcode: document.getElementById('postcode').value
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    showAlert('Patient registered successfully!', 'success');
+                    selectedPatient = {id: data.patient.id, name: data.patient.full_name};
+                    sessionStorage.setItem('patientId', data.patient.id);
+                    sessionStorage.setItem('patientName', data.patient.full_name);
+                    hideNewPatientForm();
+                    document.getElementById('newPatientForm').querySelectorAll('input').forEach(input => input.value = '');
+                    startNewAssessment();
+                } else {
+                    showAlert('Registration failed: ' + (data.message || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showAlert('Registration failed', 'error');
+                console.error('Registration error:', error);
+            }
         }
 
         function startAssessmentForPatient() {
