@@ -13,22 +13,38 @@ module.exports = async function (context, req) {
     try {
         const { patientId, clinicId } = req.body;
         
-        // Soft delete - mark as inactive
+        // Ensure clinicId is an integer
+        const clinicIdInt = parseInt(clinicId) || 2;
+        
+        context.log(`Deleting patient: ${patientId} from clinic: ${clinicIdInt}`);
+        
         const result = await pool.query(
             `UPDATE patients 
              SET status = 'inactive', updated_at = NOW()
              WHERE patient_id = $1 AND clinic_id = $2
-             RETURNING patient_id`,
-            [patientId, clinicId]
+             RETURNING patient_id, status`,
+            [patientId, clinicIdInt]
         );
         
-        context.res = {
-            body: { 
-                success: true,
-                message: 'Patient marked as inactive'
-            }
-        };
+        if (result.rows.length > 0) {
+            context.res = {
+                body: { 
+                    success: true,
+                    message: 'Patient marked as inactive',
+                    deleted: result.rows[0]
+                }
+            };
+        } else {
+            context.res = {
+                status: 404,
+                body: { 
+                    success: false,
+                    message: 'Patient not found'
+                }
+            };
+        }
     } catch (error) {
+        context.log(`Delete error: ${error.message}`);
         context.res = {
             status: 500,
             body: { success: false, message: error.message }
