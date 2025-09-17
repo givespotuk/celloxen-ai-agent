@@ -15,9 +15,10 @@ module.exports = async function (context, req) {
         
         const result = await pool.query(
             `SELECT patient_id, full_name, first_name, last_name, phone, 
-                    date_of_birth, gender, created_at 
+                    date_of_birth, gender, created_at, last_assessment_date
              FROM patients 
              WHERE clinic_id = $1 
+             AND (status = 'active' OR status IS NULL)
              ORDER BY created_at DESC`,
             [clinicId]
         );
