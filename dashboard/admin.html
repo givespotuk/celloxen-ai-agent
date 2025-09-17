@@ -574,7 +574,8 @@
             color: #155724;
         }
 
-        .status-badge.in_progress {
+        .status-badge.in_progress,
+        .status-badge.in-progress {
             background: #fff3cd;
             color: #856404;
         }
@@ -1223,6 +1224,10 @@
                 section.classList.remove('hidden');
             }
             
+            // Update breadcrumb
+            document.querySelector('.breadcrumb').textContent = 
+                'Dashboard ' + sectionName.charAt(0).toUpperCase() + sectionName.slice(1);
+            
             // Load section-specific data
             if (sectionName === 'overview' || sectionName === 'clinics') {
                 loadDashboard();
@@ -1242,7 +1247,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + token
+                        'Authorization': 'Bearer ' + token': 'Bearer ' + token
                     },
                     body: JSON.stringify({
                         role: 'super_admin'
@@ -1330,7 +1335,7 @@
                     displayAssessments(data.assessments);
                 } else {
                     // If API doesn't exist yet, show placeholder data
-                    showAlert('Assessments API not configured yet', 'error');
+                    showAlert('Error loading assessments', 'error');
                 }
             } catch (error) {
                 console.error('Error loading assessments:', error);
@@ -1792,149 +1797,4 @@
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': 'Bearer ' + token
-                        },
-                        body: JSON.stringify({ clinicId: id })
-                    });
-
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        showAlert(data.message, 'success');
-                        loadDashboard();
-                    } else {
-                        showAlert(data.message || 'Failed to delete clinic', 'error');
-                    }
-                } catch (error) {
-                    showAlert('Error deleting clinic', 'error');
-                }
-            }
-        }
-
-        function closeModal() {
-            document.getElementById('clinicModal').classList.remove('show');
-            document.getElementByI
-            function closeModal() {
-            document.getElementById('clinicModal').classList.remove('show');
-            document.getElementById('clinicForm').reset();
-            currentEditingClinic = null;
-        }
-
-        function closeViewModal() {
-            document.getElementById('viewModal').classList.remove('show');
-        }
-
-        function searchClinics() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            
-            if (searchTerm) {
-                const filtered = allClinics.filter(clinic => 
-                    (clinic.clinic_name && clinic.clinic_name.toLowerCase().includes(searchTerm)) ||
-                    (clinic.email && clinic.email.toLowerCase().includes(searchTerm)) ||
-                    (clinic.owner_name && clinic.owner_name.toLowerCase().includes(searchTerm))
-                );
-                displayClinics(filtered);
-            } else {
-                displayClinics(allClinics);
-            }
-        }
-
-        function showAlert(message, type) {
-            const alertId = type === 'success' ? 'successAlert' : 
-                           type === 'error' ? 'errorAlert' : 'infoAlert';
-            const alert = document.getElementById(alertId);
-            alert.textContent = message;
-            alert.classList.add('show');
-            
-            setTimeout(() => {
-                alert.classList.remove('show');
-            }, 5000);
-        }
-
-        function logout() {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            window.location.href = '/login.html';
-        }
-
-        // Handle menu navigation
-        document.querySelectorAll('.menu-item').forEach(item => {
-            item.addEventListener('click', (e) => {
-                e.preventDefault();
-                document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
-                item.classList.add('active');
-                const section = item.dataset.section;
-                
-                document.querySelector('.breadcrumb').textContent = 
-                    'Dashboard ' + section.charAt(0).toUpperCase() + section.slice(1);
-                
-                showSection(section);
-            });
-        });
-
-        // Handle form submission
-        document.getElementById('clinicForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const clinicData = {
-                clinicName: document.getElementById('clinicName').value,
-                email: document.getElementById('clinicEmail').value,
-                ownerName: document.getElementById('ownerName').value,
-                phone: document.getElementById('clinicPhone').value,
-                address: document.getElementById('clinicAddress').value,
-                subscriptionStatus: document.getElementById('subscriptionStatus').value
-            };
-
-            try {
-                let response;
-                if (currentEditingClinic) {
-                    // Update existing clinic
-                    clinicData.clinicId = currentEditingClinic.id;
-                    response = await fetch('/api/updateClinic', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': 'Bearer ' + token
-                        },
-                        body: JSON.stringify(clinicData)
-                    });
-                } else {
-                    // Add new clinic
-                    response = await fetch('/api/addClinic', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': 'Bearer ' + token
-                        },
-                        body: JSON.stringify(clinicData)
-                    });
-                }
-
-                const data = await response.json();
-                
-                if (data.success) {
-                    showAlert(data.message, 'success');
-                    closeModal();
-                    loadDashboard();
-                } else {
-                    showAlert(data.message || 'Operation failed', 'error');
-                }
-            } catch (error) {
-                showAlert('Error saving clinic', 'error');
-            }
-        });
-
-        // Refresh data every 60 seconds
-        setInterval(() => {
-            const activeSection = document.querySelector('.menu-item.active').dataset.section;
-            if (activeSection === 'overview' || activeSection === 'clinics') {
-                loadDashboard();
-            } else if (activeSection === 'assessments') {
-                loadAssessments();
-            } else if (activeSection === 'reports') {
-                generateReports();
-            }
-        }, 60000);
-    </script>
-</body>
-</html>
+                            'Authorization
