@@ -1,76 +1,45 @@
 const { Pool } = require('pg');
 
-const pool = new Pool({
-    host: 'celloxen-db.postgres.database.azure.com',
-    database: 'postgres',
-    user: 'adminuser',
-    password: 'Kuwait1000$$',
-    port: 5432,
-    ssl: { rejectUnauthorized: false }
-});
-
 module.exports = async function (context, req) {
-    context.log('addPatient called with body:', req.body);
-    
+    const pool = new Pool({
+        host: process.env.DB_HOST,
+        database: process.env.DB_NAME,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        port: 5432,
+        ssl: { rejectUnauthorized: false }
+    });
+
     try {
-        const { clinicId, firstName, lastName, phone } = req.body;
+        const { clinicId, firstName, lastName, phone, dateOfBirth, gender, email } = req.body;
         
-        if (!firstName || !lastName || !phone) {
-            context.res = {
-                status: 400,
-                body: {
-                    success: false,
-                    message: 'First name, last name, and phone are required'
-                }
-            };
-            return;
-        }
-        
+        // Generate patient ID
+        const patientId = `P${Date.now()}${Math.floor(Math.random()*1000)}`;
         const fullName = `${firstName} ${lastName}`;
-        const patientId = 'PAT-' + Date.now().toString().slice(-6);
         
-        // Use clinic_id only if it's a valid number greater than 0
-        const validClinicId = (clinicId && clinicId > 0) ? clinicId : null;
-        
-        const query = `
-            INSERT INTO patients (
-                patient_id, 
-                clinic_id, 
-                first_name, 
-                last_name, 
-                full_name, 
-                phone, 
-                created_at
-            ) VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
-            RETURNING id, patient_id, full_name
-        `;
-        
-        const result = await pool.query(query, [
-            patientId,
-            validClinicId,  // Will be NULL if invalid
-            firstName, 
-            lastName, 
-            fullName, 
-            phone
-        ]);
+        // Insert patient
+        const result = await pool.query(
+            `INSERT INTO patients (patient_id, clinic_id, patient_name, patient_phone, patient_email, patient_dob, patient_gender, created_at) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, NOW()) 
+             RETURNING *`,
+            [patientId, clinicId, fullName, phone, email || null, dateOfBirth || null, gender || null]
+        );
         
         context.res = {
-            status: 200,
-            body: {
-                success: true,
-                patient: result.rows[0],
-                message: 'Patient registered successfully'
+            body: { 
+                success: true, 
+                patient: { 
+                    id: result.rows[0].patient_id, 
+                    full_name: fullName 
+                }
             }
         };
     } catch (error) {
-        context.log.error('Error in addPatient:', error);
         context.res = {
-            status: 200,  // Return 200 to see error in browser
-            body: {
-                success: false,
-                message: error.message,
-                detail: error.detail || 'Database error occurred'
-            }
+            status: 500,
+            body: { success: false, message: error.message }
         };
+    } finally {
+        await pool.end();
     }
 };
