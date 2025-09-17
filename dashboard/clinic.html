@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF--8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Celloxen Clinic Dashboard - Patient Management System</title>
     <style>
@@ -704,7 +704,6 @@
     </style>
 </head>
 <body>
-    <!-- Sidebar -->
     <div class="sidebar">
         <div class="sidebar-header">
             <h2>CELLOXEN</h2>
@@ -729,9 +728,7 @@
         </div>
     </div>
 
-    <!-- Main Content -->
     <div class="main-content">
-        <!-- Top Navigation -->
         <div class="top-nav">
             <h1 class="breadcrumb">Dashboard</h1>
             <div class="top-actions">
@@ -743,16 +740,12 @@
             </div>
         </div>
 
-        <!-- Alert Messages -->
         <div class="alert success" id="successAlert"></div>
         <div class="alert error" id="errorAlert"></div>
         <div class="alert info" id="infoAlert"></div>
 
-        <!-- Dashboard Content -->
         <div class="dashboard-content">
-            <!-- Dashboard Section -->
             <div id="dashboard-section" class="section-content active">
-                <!-- Stats Cards -->
                 <div class="stats-row">
                     <div class="stat-card patients">
                         <div class="stat-icon">◉</div>
@@ -779,7 +772,6 @@
                     </div>
                 </div>
 
-                <!-- Quick Actions -->
                 <div class="quick-actions">
                     <h3>Quick Actions</h3>
                     <div class="action-buttons-grid">
@@ -802,7 +794,6 @@
                     </div>
                 </div>
 
-                <!-- Recent Assessments Table -->
                 <div class="table-section">
                     <div class="table-header">
                         <h3>Recent Assessments</h3>
@@ -826,8 +817,7 @@
                                 </tr>
                             </thead>
                             <tbody id="dashboardAssessmentsBody">
-                                <!-- Data will be loaded here -->
-                            </tbody>
+                                </tbody>
                         </table>
 
                         <div class="empty-state" id="dashboardEmptyState" style="display: none;">
@@ -839,7 +829,6 @@
                     </div>
                 </div>
 
-                <!-- Patients List Table -->
                 <div class="table-section">
                     <div class="table-header">
                         <h3>Registered Patients</h3>
@@ -859,8 +848,7 @@
                                 </tr>
                             </thead>
                             <tbody id="dashboardPatientsBody">
-                                <!-- Patients will be loaded here -->
-                            </tbody>
+                                </tbody>
                         </table>
 
                         <div class="empty-state" id="patientsEmptyState" style="display: none;">
@@ -873,7 +861,6 @@
                 </div>
             </div>
 
-            <!-- Assessments Section -->
             <div id="assessments-section" class="section-content">
                 <div class="table-section">
                     <div class="table-header">
@@ -904,8 +891,7 @@
                                 </tr>
                             </thead>
                             <tbody id="assessmentsTableBody">
-                                <!-- Data will be loaded here -->
-                            </tbody>
+                                </tbody>
                         </table>
 
                         <div class="empty-state" id="assessmentsEmptyState" style="display: none;">
@@ -917,20 +903,16 @@
                 </div>
             </div>
 
-            <!-- Patient Journey Section -->
             <div id="patients-section" class="section-content">
-                <!-- Patient List View -->
                 <div id="patientListView" class="table-section">
                     <h3>Patient Journey</h3>
                     
-                    <!-- Search Bar -->
                     <div class="search-filter-bar" style="margin: 20px 0;">
                         <input type="text" id="patientSearch" placeholder="Search patient by name, ID, or phone..." onkeypress="if(event.key==='Enter') searchPatient()">
                         <button class="filter-btn" onclick="searchPatient()">Search</button>
                         <button class="filter-btn" style="background: #28a745;" onclick="showNewPatientForm()">+ New Patient</button>
                     </div>
                     
-                    <!-- All Patients Table -->
                     <div class="table-wrapper">
                         <table class="data-table" id="patientJourneyTable">
                             <thead>
@@ -944,12 +926,10 @@
                                 </tr>
                             </thead>
                             <tbody id="patientJourneyBody">
-                                <!-- Patients will be loaded here -->
-                            </tbody>
+                                </tbody>
                         </table>
                     </div>
                     
-                    <!-- New Patient Form -->
                     <div id="newPatientForm" style="display: none; padding: 20px; background: #f8f9fa; border-radius: 8px; margin-top: 20px;">
                         <h4>Register New Patient</h4>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
@@ -974,7 +954,6 @@
                     </div>
                 </div>
 
-                <!-- Patient Details View -->
                 <div id="patientDetailsSection" class="patient-details-section">
                     <div class="patient-details-header">
                         <h3 id="patientDetailsTitle">Patient Details</h3>
@@ -987,17 +966,14 @@
                         <button class="patient-tab" onclick="showPatientTab('assessments')">Assessment History</button>
                     </div>
                     
-                    <!-- Patient Info Tab -->
                     <div id="patientInfoTab" class="patient-tab-content active">
                         <div id="patientDetailsContent">
-                            <!-- Patient info will load here -->
-                        </div>
+                            </div>
                         <div style="margin-top: 20px;">
                             <button onclick="startAssessmentFromDetails()" class="filter-btn" style="background: #28a745;">New Assessment</button>
                         </div>
                     </div>
                     
-                    <!-- Medical History Tab -->
                     <div id="patientHistoryTab" class="patient-tab-content">
                         <div class="medical-history-form">
                             <h4>Medical History & Notes</h4>
@@ -1008,23 +984,19 @@
                         </div>
                     </div>
                     
-                    <!-- Assessment History Tab -->
                     <div id="patientAssessmentsTab" class="patient-tab-content">
                         <div id="patientAssessmentHistory">
-                            <!-- Assessment history will load here -->
-                        </div>
+                            </div>
                     </div>
                 </div>
 
-                <!-- Embedded Assessment Section -->
                 <div id="embeddedAssessmentSection" class="patient-details-section">
                     <div class="patient-details-header">
                         <h3>Health Assessment in Progress</h3>
                         <button onclick="cancelAssessment()" class="filter-btn" style="background: #dc3545;">Cancel Assessment</button>
                     </div>
                     <div id="assessmentChat" class="assessment-chat">
-                        <!-- Chat messages appear here -->
-                    </div>
+                        </div>
                     <div class="chat-input-area">
                         <input type="text" id="assessmentInput" placeholder="Type your response..." 
                                onkeypress="if(event.key==='Enter') sendAssessmentMessage()">
@@ -1063,7 +1035,6 @@
         // Check authentication
         const token = localStorage.getItem('token');
         const user = JSON.parse(localStorage.getItem('user') || '{}');
-
         // Only redirect once if no token
         if (!token && !hasRedirected) {
             hasRedirected = true;
@@ -1074,7 +1045,6 @@
             
             document.getElementById('clinicNameDisplay').textContent = user.clinicName || user.displayName || 'Clinic';
             document.getElementById('userName').textContent = user.displayName || 'Clinic User';
-
             // Load initial data
             loadDashboard();
         }
@@ -1098,22 +1068,18 @@
                         role: 'clinic'
                     })
                 });
-
                 if (response.ok) {
                     const stats = await response.json();
-                    
                     // Update stats
                     updateStatValue('totalPatients', stats.totalPatients || '0');
                     updateStatValue('totalAssessments', stats.totalAssessments || '0');
                     updateStatValue('pendingReports', stats.pendingReports || '0');
                     updateStatValue('usageCount', stats.usageCount || '0');
                     updateStatValue('usageLimit', stats.usageLimit || '100');
-                    
                     // Update usage progress bar
                     const usage = ((stats.usageCount || 0) / (stats.usageLimit || 100)) * 100;
                     const progressBar = document.getElementById('usageProgress');
                     if (progressBar) progressBar.style.width = Math.min(usage, 100) + '%';
-                    
                     // Check usage limit warning
                     if (usage >= 80) {
                         showAlert(`You have used ${stats.usageCount} of ${stats.usageLimit} assessments this month`, 'info');
@@ -1135,7 +1101,6 @@
                         clinicId: clinicId
                     })
                 });
-
                 if (patientsResponse.ok) {
                     const patientsData = await patientsResponse.json();
                     allPatients = patientsData.patients || [];
@@ -1165,7 +1130,6 @@
             if (!tbody || !table || !emptyState) return;
             
             tbody.innerHTML = '';
-            
             if (!assessments || assessments.length === 0) {
                 table.style.opacity = '0';
                 emptyState.style.display = 'block';
@@ -1173,12 +1137,10 @@
             }
             
             emptyState.style.display = 'none';
-            
             assessments.slice(0, 5).forEach(assessment => {
                 const row = createAssessmentRow(assessment);
                 tbody.appendChild(row);
             });
-            
             setTimeout(() => {
                 table.style.opacity = '1';
                 table.style.transition = 'opacity 0.3s ease';
@@ -1193,7 +1155,6 @@
             if (!tbody || !table || !emptyState) return;
             
             tbody.innerHTML = '';
-            
             if (!patients || patients.length === 0) {
                 table.style.display = 'none';
                 emptyState.style.display = 'block';
@@ -1218,6 +1179,7 @@
                     <td>
                         <div class="action-links">
                             <a onclick="viewPatientFullDetails('${patient.patient_id}')">View</a>
+                            <a onclick="editPatient('${patient.patient_id}')">Edit</a>
                             <a onclick="startAssessmentForPatientDirect('${patient.patient_id}', '${patientName.replace(/'/g, "\\'")}')">Start Assessment</a>
                         </div>
                     </td>
@@ -1247,6 +1209,7 @@
                     <td>
                         <div class="action-links">
                             <a onclick="viewPatientFullDetails('${patient.patient_id}')">View Details</a>
+                            <a onclick="editPatient('${patient.patient_id}')">Edit</a>
                         </div>
                     </td>
                 `;
@@ -1269,7 +1232,6 @@
                         clinicId: clinicId
                     })
                 });
-
                 if (response.ok) {
                     const data = await response.json();
                     currentPatientDetails = data;
@@ -1284,6 +1246,115 @@
                 showAlert('Error loading patient details', 'error');
             }
         }
+
+		// Patient Edit/Delete Functions
+		function editPatient(patientId) {
+			const patient = allPatients.find(p => p.patient_id === patientId);
+			if (!patient) return;
+
+			const modalHTML = `
+				<div id="editModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 3000; display: flex; align-items: center; justify-content: center;">
+					<div style="background: white; padding: 30px; border-radius: 12px; width: 500px; max-height: 80vh; overflow-y: auto;">
+						<h3 style="margin-bottom: 20px;">Edit Patient</h3>
+						<div style="display: grid; gap: 15px;">
+							<input type="text" id="editFirstName" value="${patient.first_name || ''}" placeholder="First Name" style="padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+							<input type="text" id="editLastName" value="${patient.last_name || ''}" placeholder="Last Name" style="padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+							<input type="email" id="editEmail" value="${patient.email || ''}" placeholder="Email" style="padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+							<input type="tel" id="editPhone" value="${patient.phone || ''}" placeholder="Phone" style="padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+							<input type="date" id="editDob" value="${patient.date_of_birth ? patient.date_of_birth.split('T')[0] : ''}" style="padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+							<select id="editGender" style="padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+								<option value="">Select Gender</option>
+								<option value="Male" ${patient.gender === 'Male' ? 'selected' : ''}>Male</option>
+								<option value="Female" ${patient.gender === 'Female' ? 'selected' : ''}>Female</option>
+								<option value="Other" ${patient.gender === 'Other' ? 'selected' : ''}>Other</option>
+							</select>
+							<input type="text" id="editNhs" value="${patient.nhs_number || ''}" placeholder="NHS Number" style="padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+							<input type="text" id="editPostcode" value="${patient.postcode || ''}" placeholder="Postcode" style="padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+						</div>
+						<div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+							<button onclick="savePatientEdit('${patientId}')" class="filter-btn" style="background: #28a745;">Save</button>
+							<button onclick="closeEditModal()" class="filter-btn" style="background: #6c757d;">Cancel</button>
+							<button onclick="deletePatient('${patientId}')" class="filter-btn" style="background: #dc3545;">Delete Patient</button>
+						</div>
+					</div>
+				</div>
+			`;
+			document.body.insertAdjacentHTML('beforeend', modalHTML);
+		}
+
+		async function savePatientEdit(patientId) {
+			const updates = {
+				first_name: document.getElementById('editFirstName').value,
+				last_name: document.getElementById('editLastName').value,
+				full_name: document.getElementById('editFirstName').value + ' ' + document.getElementById('editLastName').value,
+				email: document.getElementById('editEmail').value || null,
+				phone: document.getElementById('editPhone').value,
+				date_of_birth: document.getElementById('editDob').value || null,
+				gender: document.getElementById('editGender').value || null,
+				nhs_number: document.getElementById('editNhs').value || null,
+				postcode: document.getElementById('editPostcode').value || null
+			};
+
+			const clinicId = user.clinicId || user.clinic_id || user.id;
+
+			try {
+				const response = await fetch('/api/updatePatient', {
+					method: 'POST',
+					headers: {'Content-Type': 'application/json'},
+					body: JSON.stringify({
+						patientId: patientId,
+						clinicId: clinicId,
+						updates: updates
+					})
+				});
+
+				if (response.ok) {
+					showAlert('Patient updated successfully', 'success');
+					closeEditModal();
+					loadDashboard();
+				} else {
+					showAlert('Error updating patient', 'error');
+				}
+			} catch (error) {
+				console.error('Error updating patient:', error);
+				showAlert('Error updating patient', 'error');
+			}
+		}
+
+		async function deletePatient(patientId) {
+			if (!confirm('Are you sure you want to delete this patient? This will mark them as inactive.')) {
+				return;
+			}
+
+			const clinicId = user.clinicId || user.clinic_id || user.id;
+
+			try {
+				const response = await fetch('/api/deletePatient', {
+					method: 'POST',
+					headers: {'Content-Type': 'application/json'},
+					body: JSON.stringify({
+						patientId: patientId,
+						clinicId: clinicId
+					})
+				});
+
+				if (response.ok) {
+					showAlert('Patient deleted successfully', 'success');
+					closeEditModal();
+					loadDashboard();
+				} else {
+					showAlert('Error deleting patient', 'error');
+				}
+			} catch (error) {
+				console.error('Error deleting patient:', error);
+				showAlert('Error deleting patient', 'error');
+			}
+		}
+
+		function closeEditModal() {
+			const modal = document.getElementById('editModal');
+			if (modal) modal.remove();
+		}
 
         function displayPatientDetails(data) {
             const patient = data.patient;
@@ -1306,10 +1377,8 @@
                     <p><strong>Registered:</strong> ${patient.created_at ? new Date(patient.created_at).toLocaleDateString('en-GB') : 'N/A'}</p>
                 </div>
             `;
-            
             // Load medical history
             document.getElementById('medicalHistoryText').value = patient.medical_history || '';
-            
             // Display assessment history
             let assessmentHTML = '<h4>Previous Assessments</h4>';
             if (assessments.length > 0) {
@@ -1342,7 +1411,6 @@
             document.querySelectorAll('.patient-tab-content').forEach(content => {
                 content.classList.remove('active');
             });
-            
             if (tab === 'info') {
                 document.getElementById('patientInfoTab').classList.add('active');
             } else if (tab === 'history') {
@@ -1359,7 +1427,6 @@
             if (!patient) return;
             
             const clinicId = user.clinicId || user.clinic_id || user.id;
-            
             try {
                 const response = await fetch('/api/updatePatientNotes', {
                     method: 'POST',
@@ -1372,7 +1439,6 @@
                         medicalHistory: medicalHistory
                     })
                 });
-
                 if (response.ok) {
                     showAlert('Medical history saved successfully', 'success');
                 } else {
@@ -1395,14 +1461,12 @@
             if (!patient) return;
             
             const patientName = patient.full_name || patient.first_name + ' ' + patient.last_name;
-            
             // Hide details, show assessment
             document.getElementById('patientDetailsSection').style.display = 'none';
             document.getElementById('embeddedAssessmentSection').style.display = 'block';
             
             // Clear previous chat
             document.getElementById('assessmentChat').innerHTML = '';
-            
             // Start embedded assessment
             await startEmbeddedAssessment(patient.patient_id, patientName);
         }
@@ -1421,13 +1485,11 @@
                         patientName: patientName
                     })
                 });
-                
                 const data = await response.json();
                 currentAssessmentSession = data.sessionId;
                 
                 // Display first message
                 addChatMessage(data.message, 'assistant');
-                
             } catch (error) {
                 console.error('Error starting assessment:', error);
                 showAlert('Error starting assessment', 'error');
@@ -1450,7 +1512,6 @@
             
             addChatMessage(message, 'user');
             input.value = '';
-            
             try {
                 const response = await fetch('/api/embeddedHealthAgent', {
                     method: 'POST',
@@ -1461,7 +1522,6 @@
                         message: message
                     })
                 });
-                
                 const data = await response.json();
                 addChatMessage(data.message, 'assistant');
                 
@@ -1503,14 +1563,12 @@
             if (!tbody || !emptyState) return;
             
             tbody.innerHTML = '';
-            
             if (!assessments || assessments.length === 0) {
                 emptyState.style.display = 'block';
                 return;
             }
             
             emptyState.style.display = 'none';
-            
             assessments.forEach(assessment => {
                 const row = createAssessmentRow(assessment);
                 tbody.appendChild(row);
@@ -1521,7 +1579,6 @@
             const row = document.createElement('tr');
             const date = new Date(assessment.started_at).toLocaleDateString('en-GB');
             const statusClass = (assessment.status || '').replace('_', '-');
-            
             row.innerHTML = `
                 <td>${date}</td>
                 <td class="patient-name">${assessment.patient_name || 'Unknown'}</td>
@@ -1531,8 +1588,7 @@
                 <td>
                     <div class="action-links">
                         <a onclick="viewAssessment('${assessment.session_id || assessment.sessionId}')">View</a>
-                        ${assessment.status === 'completed' ? 
-                            `<a onclick="downloadReport('${assessment.session_id || assessment.sessionId}')">Download</a>` : 
+                        ${assessment.status === 'completed' ? `<a onclick="downloadReport('${assessment.session_id || assessment.sessionId}')">Download</a>` : 
                             ''}
                     </div>
                 </td>
@@ -1542,7 +1598,6 @@
 
         function filterAssessments(filter, button) {
             currentFilter = filter;
-            
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             if (button) button.classList.add('active');
             
@@ -1595,7 +1650,6 @@
                 const phone = (p.phone || '').toLowerCase();
                 return name.includes(searchTerm) || id.includes(searchTerm) || phone.includes(searchTerm);
             });
-            
             displayPatientJourneyList(filtered);
         }
 
@@ -1635,7 +1689,6 @@
                         postcode: document.getElementById('postcode').value
                     })
                 });
-                
                 const data = await response.json();
                 if (data.success) {
                     showAlert('Patient registered successfully!', 'success');
@@ -1643,7 +1696,6 @@
                     document.getElementById('newPatientForm').querySelectorAll('input').forEach(input => input.value = '');
                     document.getElementById('gender').value = '';
                     loadDashboard();
-                    
                     // View the new patient details
                     setTimeout(() => {
                         viewPatientFullDetails(data.patient.patient_id);
@@ -1685,7 +1737,6 @@
             document.querySelectorAll('.section-content').forEach(section => {
                 section.classList.remove('active');
             });
-            
             const targetSection = document.getElementById(`${sectionName}-section`);
             if (targetSection) {
                 targetSection.classList.add('active');
@@ -1729,7 +1780,6 @@
                 showSection(item.dataset.section);
             });
         });
-
         // Refresh data every 60 seconds
         refreshTimer = setInterval(() => {
             const dashboardSection = document.getElementById('dashboard-section');
@@ -1737,7 +1787,6 @@
                 loadDashboard();
             }
         }, 60000);
-
         // Check for returning from assessment
         window.addEventListener('load', () => {
             const assessmentCompleted = sessionStorage.getItem('assessmentCompleted');
