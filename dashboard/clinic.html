@@ -586,7 +586,7 @@
                 <i class="icon">□</i> Dashboard
             </a>
             <a href="#" class="menu-item" data-section="patients">
-                <i class="icon">◉</i> Patients
+                <i class="icon">◉</i> Patient Journey
             </a>
             <a href="#" class="menu-item" data-section="assessments">
                 <i class="icon">☐</i> Assessments
@@ -660,7 +660,7 @@
                         </a>
                         <a href="#" class="action-btn" onclick="showSection('patients'); return false;">
                             <i class="icon">◉</i>
-                            View Patients
+                            Patient Journey
                         </a>
                         <a href="#" class="action-btn" onclick="showSection('reports'); return false;">
                             <i class="icon">▤</i>
@@ -755,11 +755,57 @@
                 </div>
             </div>
 
-            <!-- Other sections -->
+            <!-- Patient Journey Section -->
             <div id="patients-section" class="section-content">
                 <div class="table-section">
-                    <h3>Patient Management</h3>
-                    <p>Patient management features coming soon...</p>
+                    <h3>Patient Journey</h3>
+                    
+                    <!-- Search Bar -->
+                    <div class="search-filter-bar" style="margin: 20px 0;">
+                        <input type="text" id="patientSearch" placeholder="Search patient by name, ID, or phone..." onkeypress="if(event.key==='Enter') searchPatient()">
+                        <button class="filter-btn" onclick="searchPatient()">Search</button>
+                        <button class="filter-btn" style="background: #28a745;" onclick="showNewPatientForm()">+ New Patient</button>
+                    </div>
+                    
+                    <!-- Search Results -->
+                    <div id="patientSearchResults" style="display: none;">
+                        <h4>Search Results</h4>
+                        <div id="patientsList"></div>
+                    </div>
+                    
+                    <!-- New Patient Form -->
+                    <div id="newPatientForm" style="display: none; padding: 20px; background: #f8f9fa; border-radius: 8px; margin-top: 20px;">
+                        <h4>Register New Patient</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+                            <input type="text" id="firstName" placeholder="First Name*" style="padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                            <input type="text" id="lastName" placeholder="Last Name*" style="padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                            <input type="date" id="dateOfBirth" style="padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                            <select id="gender" style="padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                                <option value="">Select Gender</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                            <input type="email" id="patientEmail" placeholder="Email" style="padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                            <input type="tel" id="patientPhone" placeholder="Phone*" style="padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                            <input type="text" id="nhsNumber" placeholder="NHS Number" style="padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                            <input type="text" id="postcode" placeholder="Postcode" style="padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                        </div>
+                        <div style="margin-top: 20px;">
+                            <button class="filter-btn" style="background: #28a745;" onclick="registerPatient()">Register & Start Assessment</button>
+                            <button class="filter-btn" style="background: #6c757d;" onclick="hideNewPatientForm()">Cancel</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Patient History -->
+                    <div id="patientHistory" style="display: none; margin-top: 20px;">
+                        <h4 id="patientNameHeader">Patient History</h4>
+                        <div id="historyContent"></div>
+                        <div style="margin-top: 20px;">
+                            <button class="filter-btn" onclick="startAssessmentForPatient()">New Assessment</button>
+                            <button class="filter-btn" style="background: #17a2b8;">Continue Treatment</button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -784,7 +830,8 @@
         let currentFilter = 'all';
         let allAssessments = [];
         let refreshTimer = null;
-        let hasRedirected = false; // Prevent redirect loops
+        let hasRedirected = false;
+        let selectedPatient = null;
 
         // Check authentication
         const token = localStorage.getItem('token');
@@ -852,7 +899,6 @@
                 
             } catch (error) {
                 console.error('Error loading dashboard:', error);
-                // Don't show error alert on initial load to prevent annoyance
             } finally {
                 if (loadingDiv) loadingDiv.classList.remove('show');
             }
@@ -882,13 +928,11 @@
             
             emptyState.style.display = 'none';
             
-            // Show only recent 5 assessments on dashboard
             assessments.slice(0, 5).forEach(assessment => {
                 const row = createAssessmentRow(assessment);
                 tbody.appendChild(row);
             });
             
-            // Fade in the table
             setTimeout(() => {
                 table.style.opacity = '1';
                 table.style.transition = 'opacity 0.3s ease';
@@ -942,11 +986,9 @@
         function filterAssessments(filter, button) {
             currentFilter = filter;
             
-            // Update tab buttons
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             if (button) button.classList.add('active');
             
-            // Filter assessments
             let filtered = allAssessments;
             if (filter !== 'all') {
                 filtered = allAssessments.filter(a => a.status === filter);
@@ -978,7 +1020,6 @@
         }
 
         function startNewAssessment() {
-            // Check usage limit first
             const usageCountEl = document.getElementById('usageCount');
             const usageLimitEl = document.getElementById('usageLimit');
             
@@ -992,13 +1033,92 @@
                 }
             }
             
-            // Store clinic ID for the assessment
             const clinicId = user.clinicId || user.clinic_id || user.id || '1';
             sessionStorage.setItem('clinicId', clinicId);
             sessionStorage.setItem('clinicName', user.clinicName || user.displayName || 'Clinic');
             
-            // Redirect to assessment page
             window.location.href = '/index.html';
+        }
+
+        // Patient Journey Functions
+        async function searchPatient() {
+            const searchTerm = document.getElementById('patientSearch').value;
+            if (!searchTerm) return;
+            
+            const clinicId = user.clinicId || user.clinic_id || user.id;
+            
+            try {
+                const response = await fetch('/api/searchPatient', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        clinicId: clinicId,
+                        searchTerm: searchTerm
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.patients.length > 0) {
+                    displayPatientResults(data.patients);
+                } else {
+                    showAlert('No patients found. Create a new patient?', 'info');
+                    showNewPatientForm();
+                }
+            } catch (error) {
+                console.error('Search failed:', error);
+            }
+        }
+
+        function displayPatientResults(patients) {
+            const resultsDiv = document.getElementById('patientSearchResults');
+            const listDiv = document.getElementById('patientsList');
+            
+            listDiv.innerHTML = patients.map(p => `
+                <div style="padding: 10px; border: 1px solid #ddd; margin: 5px 0; cursor: pointer;" 
+                     onclick="selectPatient(${p.id}, '${p.full_name}')">
+                    <strong>${p.full_name}</strong> - ${p.patient_id || 'No ID'}<br>
+                    Phone: ${p.phone || 'N/A'} | DOB: ${p.date_of_birth || 'N/A'}
+                </div>
+            `).join('');
+            
+            resultsDiv.style.display = 'block';
+            document.getElementById('newPatientForm').style.display = 'none';
+        }
+
+        function selectPatient(patientId, patientName) {
+            selectedPatient = { id: patientId, name: patientName };
+            document.getElementById('patientNameHeader').textContent = `Patient: ${patientName}`;
+            document.getElementById('patientHistory').style.display = 'block';
+            document.getElementById('patientSearchResults').style.display = 'none';
+            loadPatientHistory(patientId);
+        }
+
+        function loadPatientHistory(patientId) {
+            document.getElementById('historyContent').innerHTML = '<p>Loading patient history...</p>';
+            // Future: Load patient's assessment history
+        }
+
+        function showNewPatientForm() {
+            document.getElementById('newPatientForm').style.display = 'block';
+            document.getElementById('patientSearchResults').style.display = 'none';
+        }
+
+        function hideNewPatientForm() {
+            document.getElementById('newPatientForm').style.display = 'none';
+        }
+
+        function registerPatient() {
+            showAlert('Patient registration coming soon', 'info');
+        }
+
+        function startAssessmentForPatient() {
+            if (!selectedPatient) return;
+            sessionStorage.setItem('patientId', selectedPatient.id);
+            sessionStorage.setItem('patientName', selectedPatient.name);
+            startNewAssessment();
         }
 
         function viewAssessment(sessionId) {
@@ -1014,7 +1134,6 @@
         }
 
         function showSection(sectionName) {
-            // Update menu
             document.querySelectorAll('.menu-item').forEach(item => {
                 item.classList.remove('active');
                 if (item.dataset.section === sectionName) {
@@ -1022,13 +1141,11 @@
                 }
             });
             
-            // Update breadcrumb
             const breadcrumb = document.querySelector('.breadcrumb');
             if (breadcrumb) {
                 breadcrumb.textContent = sectionName.charAt(0).toUpperCase() + sectionName.slice(1);
             }
             
-            // Show/hide sections
             document.querySelectorAll('.section-content').forEach(section => {
                 section.classList.remove('active');
             });
@@ -1038,7 +1155,6 @@
                 targetSection.classList.add('active');
             }
             
-            // Reload data if going to assessments
             if (sectionName === 'assessments') {
                 loadDashboard();
             }
@@ -1060,7 +1176,6 @@
         }
 
         function logout() {
-            // Clear refresh timer
             if (refreshTimer) {
                 clearInterval(refreshTimer);
             }
