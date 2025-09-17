@@ -583,13 +583,13 @@
         </div>
         <div class="sidebar-menu">
             <a href="#" class="menu-item active" data-section="dashboard">
-                <i class="icon">□</i> Dashboard
+                <i class="icon">▢</i> Dashboard
             </a>
             <a href="#" class="menu-item" data-section="patients">
                 <i class="icon">◉</i> Patient Journey
             </a>
             <a href="#" class="menu-item" data-section="assessments">
-                <i class="icon">☐</i> Assessments
+                <i class="icon">☑</i> Assessments
             </a>
             <a href="#" class="menu-item" data-section="reports">
                 <i class="icon">▤</i> Reports
@@ -631,7 +631,7 @@
                         <div class="stat-label">Total Patients</div>
                     </div>
                     <div class="stat-card assessments">
-                        <div class="stat-icon">☐</div>
+                        <div class="stat-icon">☑</div>
                         <div class="stat-value" id="totalAssessments">0</div>
                         <div class="stat-label">Total Assessments</div>
                     </div>
@@ -702,7 +702,7 @@
                         </table>
 
                         <div class="empty-state" id="dashboardEmptyState" style="display: none;">
-                            <i class="icon" style="font-size: 3rem;">☐</i>
+                            <i class="icon" style="font-size: 3rem;">☑</i>
                             <h4>No Assessments Yet</h4>
                             <p>Start your first assessment to see it here</p>
                             <button class="start-assessment-btn" onclick="startNewAssessment()">Start Assessment</button>
@@ -747,7 +747,7 @@
                         </table>
 
                         <div class="empty-state" id="assessmentsEmptyState" style="display: none;">
-                            <i class="icon" style="font-size: 3rem;">☐</i>
+                            <i class="icon" style="font-size: 3rem;">☑</i>
                             <h4>No Assessments Found</h4>
                             <p>Try adjusting your filters or search criteria</p>
                         </div>
@@ -1078,9 +1078,9 @@
             
             listDiv.innerHTML = patients.map(p => `
                 <div style="padding: 10px; border: 1px solid #ddd; margin: 5px 0; cursor: pointer;" 
-                     onclick="selectPatient(${p.id}, '${p.full_name}')">
-                    <strong>${p.full_name}</strong> - ${p.patient_id || 'No ID'}<br>
-                    Phone: ${p.phone || 'N/A'} | DOB: ${p.date_of_birth || 'N/A'}
+                     onclick="selectPatient('${p.patient_id}', '${p.full_name || (p.first_name + ' ' + p.last_name)}')">
+                    <strong>${p.full_name || (p.first_name + ' ' + p.last_name)}</strong> - ${p.patient_id}<br>
+                    Phone: ${p.phone || 'N/A'} | DOB: ${p.date_of_birth ? new Date(p.date_of_birth).toLocaleDateString('en-GB') : 'N/A'}
                 </div>
             `).join('');
             
@@ -1096,9 +1096,21 @@
             loadPatientHistory(patientId);
         }
 
-        function loadPatientHistory(patientId) {
-            document.getElementById('historyContent').innerHTML = '<p>Loading patient history...</p>';
-            // Future: Load patient's assessment history
+        async function loadPatientHistory(patientId) {
+            const historyContent = document.getElementById('historyContent');
+            historyContent.innerHTML = '<p>Loading patient history...</p>';
+            
+            try {
+                const clinicId = user.clinicId || user.clinic_id || user.id;
+                
+                // This will need a new API endpoint to fetch patient assessment history
+                historyContent.innerHTML = `
+                    <p>Patient ID: ${patientId}</p>
+                    <p>Previous assessments will be shown here once the history endpoint is implemented.</p>
+                `;
+            } catch (error) {
+                historyContent.innerHTML = '<p>Error loading patient history</p>';
+            }
         }
 
         function showNewPatientForm() {
@@ -1142,11 +1154,12 @@
                 const data = await response.json();
                 if (data.success) {
                     showAlert('Patient registered successfully!', 'success');
-                    selectedPatient = {id: data.patient.id, name: data.patient.full_name};
-                    sessionStorage.setItem('patientId', data.patient.id);
+                    selectedPatient = {id: data.patient.patient_id, name: data.patient.full_name};
+                    sessionStorage.setItem('patientId', data.patient.patient_id);
                     sessionStorage.setItem('patientName', data.patient.full_name);
                     hideNewPatientForm();
                     document.getElementById('newPatientForm').querySelectorAll('input').forEach(input => input.value = '');
+                    document.getElementById('gender').value = '';
                     startNewAssessment();
                 } else {
                     showAlert('Registration failed: ' + (data.message || 'Unknown error'), 'error');
