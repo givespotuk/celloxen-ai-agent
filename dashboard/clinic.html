@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Celloxen Clinic Dashboard - Patient Management System</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <script src="/dashboard/assessment-embed.js"></script>
     <style>
         * {
             margin: 0;
@@ -448,6 +449,14 @@
         .action-links a:hover {
             color: #0077b6;
             text-decoration: underline;
+        }
+
+        /* Delete link styling */
+        .action-links a[onclick*="delete"] {
+            color: #dc3545;
+        }
+        .action-links a[onclick*="delete"]:hover {
+            color: #c82333;
         }
 
         /* Empty State */
@@ -1192,6 +1201,8 @@
                     <td>
                         <div class="action-links">
                             <a onclick="viewPatientFullDetails('${patient.patient_id}')">View</a>
+                            <a onclick="editPatient('${patient.patient_id}')">Edit</a>
+                            <a onclick="deletePatientDirect('${patient.patient_id}', '${patientName.replace(/'/g, "\\'")}')">Delete</a>
                             <a onclick="startAssessmentForPatientDirect('${patient.patient_id}', '${patientName.replace(/'/g, "\\'")}')">Start Assessment</a>
                         </div>
                     </td>
@@ -1221,6 +1232,8 @@
                     <td>
                         <div class="action-links">
                             <a onclick="viewPatientFullDetails('${patient.patient_id}')">View Details</a>
+                            <a onclick="editPatient('${patient.patient_id}')">Edit</a>
+                            <a onclick="deletePatientDirect('${patient.patient_id}', '${patientName.replace(/'/g, "\\'")}')">Delete</a>
                         </div>
                     </td>
                 `;
@@ -1257,6 +1270,142 @@
                 console.error('Error loading patient details:', error);
                 showAlert('Error loading patient details', 'error');
             }
+        }
+        
+        // Patient Edit/Delete Functions
+        function editPatient(patientId) {
+            const patient = allPatients.find(p => p.patient_id === patientId);
+            if (!patient) return;
+
+            const modalHTML = `
+                <div id="editModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 3000; display: flex; align-items: center; justify-content: center;">
+                    <div style="background: white; padding: 30px; border-radius: 12px; width: 500px; max-height: 80vh; overflow-y: auto;">
+                        <h3 style="margin-bottom: 20px;">Edit Patient</h3>
+                        <div style="display: grid; gap: 15px;">
+                            <input type="text" id="editFirstName" value="${patient.first_name || ''}" placeholder="First Name" style="padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                            <input type="text" id="editLastName" value="${patient.last_name || ''}" placeholder="Last Name" style="padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                            <input type="email" id="editEmail" value="${patient.email || ''}" placeholder="Email" style="padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                            <input type="tel" id="editPhone" value="${patient.phone || ''}" placeholder="Phone" style="padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                            <input type="date" id="editDob" value="${patient.date_of_birth ? patient.date_of_birth.split('T')[0] : ''}" style="padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                            <select id="editGender" style="padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                                <option value="">Select Gender</option>
+                                <option value="Male" ${patient.gender === 'Male' ? 'selected' : ''}>Male</option>
+                                <option value="Female" ${patient.gender === 'Female' ? 'selected' : ''}>Female</option>
+                                <option value="Other" ${patient.gender === 'Other' ? 'selected' : ''}>Other</option>
+                            </select>
+                            <input type="text" id="editNhs" value="${patient.nhs_number || ''}" placeholder="NHS Number" style="padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                            <input type="text" id="editPostcode" value="${patient.postcode || ''}" placeholder="Postcode" style="padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                        </div>
+                        <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+                            <button onclick="savePatientEdit('${patientId}')" class="filter-btn" style="background: #28a745;">Save</button>
+                            <button onclick="closeEditModal()" class="filter-btn" style="background: #6c757d;">Cancel</button>
+                            <button onclick="deletePatient('${patientId}')" class="filter-btn" style="background: #dc3545;">Delete Patient</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+        }
+
+        async function savePatientEdit(patientId) {
+            const updates = {
+                first_name: document.getElementById('editFirstName').value,
+                last_name: document.getElementById('editLastName').value,
+                full_name: document.getElementById('editFirstName').value + ' ' + document.getElementById('editLastName').value,
+                email: document.getElementById('editEmail').value || null,
+                phone: document.getElementById('editPhone').value,
+                date_of_birth: document.getElementById('editDob').value || null,
+                gender: document.getElementById('editGender').value || null,
+                nhs_number: document.getElementById('editNhs').value || null,
+                postcode: document.getElementById('editPostcode').value || null
+            };
+
+            const clinicId = user.clinicId || user.clinic_id || user.id;
+
+            try {
+                const response = await fetch('/api/updatePatient', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        patientId: patientId,
+                        clinicId: clinicId,
+                        updates: updates
+                    })
+                });
+
+                if (response.ok) {
+                    showAlert('Patient updated successfully', 'success');
+                    closeEditModal();
+                    loadDashboard();
+                } else {
+                    showAlert('Error updating patient', 'error');
+                }
+            } catch (error) {
+                console.error('Error updating patient:', error);
+                showAlert('Error updating patient', 'error');
+            }
+        }
+
+        async function deletePatient(patientId) {
+            if (!confirm('Are you sure you want to delete this patient? This will mark them as inactive.')) {
+                return;
+            }
+
+            const clinicId = user.clinicId || user.clinic_id || user.id;
+
+            try {
+                const response = await fetch('/api/deletePatient', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        patientId: patientId,
+                        clinicId: clinicId
+                    })
+                });
+
+                if (response.ok) {
+                    showAlert('Patient deleted successfully', 'success');
+                    closeEditModal();
+                    loadDashboard();
+                } else {
+                    showAlert('Error deleting patient', 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting patient:', error);
+                showAlert('Error deleting patient', 'error');
+            }
+        }
+        
+        // Direct delete function for patient list
+        async function deletePatientDirect(patientId, patientName) {
+            if (!confirm(`Are you sure you want to delete patient ${patientName}? This will mark them as inactive.`)) {
+                return;
+            }
+                const clinicId = user.clinicId || user.clinic_id || user.id;
+                try {
+                const response = await fetch('/api/deletePatient', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        patientId: patientId,
+                        clinicId: clinicId
+                    })
+                });
+                        if (response.ok) {
+                    showAlert('Patient deleted successfully', 'success');
+                    loadDashboard();
+                } else {
+                    showAlert('Error deleting patient', 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting patient:', error);
+                showAlert('Error deleting patient', 'error');
+            }
+        }
+
+        function closeEditModal() {
+            const modal = document.getElementById('editModal');
+            if (modal) modal.remove();
         }
 
         function displayPatientDetails(data) {
@@ -1380,7 +1529,7 @@
         async function startEmbeddedAssessment(patientId, patientName) {
             document.getElementById('patientDetailsSection').style.display = 'none';
             document.getElementById('embeddedAssessmentSection').style.display = 'block';
-                const clinicId = user.clinicId || user.clinic_id || user.id;
+            const clinicId = user.clinicId || user.clinic_id || user.id;
             await AssessmentEmbed.init(patientId, patientName, clinicId);
             AssessmentEmbed.setupListeners();
         }
