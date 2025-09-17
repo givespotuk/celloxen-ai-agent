@@ -21,51 +21,33 @@ module.exports = async function (context, req) {
         
         const clinic = clinicResult.rows[0] || {};
         
-        // Count ACTIVE patients only
+        // Count active patients
         const patientsResult = await pool.query(
-            `SELECT 
-                COUNT(*) as count,
-                COUNT(last_assessment_date) as assessed_count,
-                MAX(last_assessment_date) as last_assessment
-             FROM patients 
+            `SELECT COUNT(*) as count FROM patients 
              WHERE clinic_id = $1 AND (status = 'active' OR status IS NULL)`,
             [clinicId]
         );
         
-        // Count assessments for ACTIVE patients only
+        // Count all assessments (keep showing historical data)
         const assessmentsResult = await pool.query(
-            `SELECT COUNT(DISTINCT s.session_id) as count 
-             FROM ai_agent_sessions s
-             LEFT JOIN patients p ON p.full_name = s.patient_name AND p.clinic_id = s.clinic_id
-             WHERE s.clinic_id = $1 
-             AND (p.status = 'active' OR p.status IS NULL OR p.patient_id IS NULL)`,
+            'SELECT COUNT(*) as count FROM ai_agent_sessions WHERE clinic_id = $1',
             [clinicId]
         );
         
-        // Count pending reports for active patients
+        // Count pending reports
         const pendingResult = await pool.query(
-            `SELECT COUNT(DISTINCT s.session_id) as count 
-             FROM ai_agent_sessions s
-             LEFT JOIN patients p ON p.full_name = s.patient_name AND p.clinic_id = s.clinic_id
-             WHERE s.clinic_id = $1 AND s.status = 'in_progress'
-             AND (p.status = 'active' OR p.status IS NULL OR p.patient_id IS NULL)`,
+            `SELECT COUNT(*) as count FROM ai_agent_sessions 
+             WHERE clinic_id = $1 AND status = 'in_progress'`,
             [clinicId]
         );
         
-        // Get recent assessments for active patients only
+        // Get recent assessments
         const recentAssessments = await pool.query(
-            `SELECT 
-                s.session_id, 
-                s.patient_name, 
-                s.status, 
-                s.started_at,
-                s.recommended_therapy_name as therapy,
-                p.status as patient_status
-             FROM ai_agent_sessions s
-             LEFT JOIN patients p ON p.full_name = s.patient_name AND p.clinic_id = s.clinic_id
-             WHERE s.clinic_id = $1 
-             AND (p.status = 'active' OR p.status IS NULL OR p.patient_id IS NULL)
-             ORDER BY s.started_at DESC 
+            `SELECT session_id, patient_name, status, started_at, 
+                    recommended_therapy_name as therapy
+             FROM ai_agent_sessions 
+             WHERE clinic_id = $1 
+             ORDER BY started_at DESC 
              LIMIT 10`,
             [clinicId]
         );
@@ -73,8 +55,6 @@ module.exports = async function (context, req) {
         context.res = {
             body: {
                 totalPatients: parseInt(patientsResult.rows[0].count) || 0,
-                assessedPatients: parseInt(patientsResult.rows[0].assessed_count) || 0,
-                lastPatientAssessment: patientsResult.rows[0].last_assessment,
                 totalAssessments: parseInt(assessmentsResult.rows[0].count) || 0,
                 pendingReports: parseInt(pendingResult.rows[0].count) || 0,
                 usageCount: clinic.usage_count || 0,
@@ -89,7 +69,6 @@ module.exports = async function (context, req) {
             status: 500,
             body: {
                 totalPatients: 0,
-                assessedPatients: 0,
                 totalAssessments: 0,
                 pendingReports: 0,
                 usageCount: 0,
