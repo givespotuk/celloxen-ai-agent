@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Celloxen Clinic Dashboard - Patient Management System</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <script src="/dashboard/assessment-embed.js"></script>
     <style>
         * {
             margin: 0;
@@ -712,7 +711,6 @@
             }
         }
     </style>
-    <script src="/dashboard/assessment-embed.js"></script>
 </head>
 <body>
     <div class="sidebar">
@@ -1040,7 +1038,6 @@
         let refreshTimer = null;
         let hasRedirected = false;
         let selectedPatient = null;
-        let currentAssessmentSession = null;
         let currentPatientDetails = null;
 
         // Check authentication
@@ -1532,21 +1529,95 @@
             await startEmbeddedAssessment(patient.patient_id, patientName);
         }
 
+        // Embedded Assessment Functions
+        let currentAssessmentSession = null;
         async function startEmbeddedAssessment(patientId, patientName) {
             document.getElementById('patientDetailsSection').style.display = 'none';
             document.getElementById('embeddedAssessmentSection').style.display = 'block';
+        
             const clinicId = user.clinicId || user.clinic_id || user.id;
-            await AssessmentEmbed.init(patientId, patientName, clinicId);
-            AssessmentEmbed.setupListeners();
+        
+            try {
+                const response = await fetch('/api/embeddedHealthAgent', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        action: 'start',
+                        clinicId: clinicId,
+                        patientId: patientId,
+                        patientName: patientName
+                    })
+                });
+        
+                const data = await response.json();
+                currentAssessmentSession = data.sessionId;
+        
+                // Clear chat and display first message
+                document.getElementById('assessmentChat').innerHTML = '';
+                addChatMessage(data.message, 'assistant');
+        
+            } catch (error) {
+                console.error('Error starting assessment:', error);
+                showAlert('Failed to start assessment', 'error');
+            }
         }
 
-        function sendAssessmentMessage() {
+        function addChatMessage(message, sender) {
+            const chatDiv = document.getElementById('assessmentChat');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `chat-message ${sender}`;
+        
+            if (message.includes('\n')) {
+                msgDiv.innerHTML = message.replace(/\n/g, '<br>');
+            } else {
+                msgDiv.textContent = message;
+            }
+        
+            chatDiv.appendChild(msgDiv);
+            chatDiv.scrollTop = chatDiv.scrollHeight;
+        }
+
+        async function sendAssessmentMessage() {
             const input = document.getElementById('assessmentInput');
-            AssessmentEmbed.sendMessage(input.value.trim());
+            const message = input.value.trim();
+            if (!message || !currentAssessmentSession) return;
+        
+            addChatMessage(message, 'user');
+            input.value = '';
+        
+            try {
+                const response = await fetch('/api/embeddedHealthAgent', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        action: 'chat',
+                        sessionId: currentAssessmentSession,
+                        message: message
+                    })
+                });
+        
+                const data = await response.json();
+                addChatMessage(data.message, 'assistant');
+        
+                if (data.phase === 'report_complete') {
+                    showAlert('Assessment completed successfully!', 'success');
+                    setTimeout(() => {
+                        document.getElementById('embeddedAssessmentSection').style.display = 'none';
+                        loadDashboard();
+                    }, 3000);
+                }
+            } catch (error) {
+                console.error('Error sending message:', error);
+                showAlert('Failed to send message', 'error');
+            }
         }
 
         function cancelAssessment() {
-            AssessmentEmbed.cancel();
+            if (confirm('Are you sure you want to cancel this assessment?')) {
+                document.getElementById('embeddedAssessmentSection').style.display = 'none';
+                document.getElementById('patientDetailsSection').style.display = 'block';
+                currentAssessmentSession = null;
+            }
         }
 
         function startAssessmentForPatientDirect(patientId, patientName) {
