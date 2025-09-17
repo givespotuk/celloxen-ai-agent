@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Celloxen Clinic Dashboard - Patient Management System</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <script src="/dashboard/assessment-embed.js"></script>
     <style>
         * {
             margin: 0;
@@ -1369,10 +1370,6 @@
             
             const patientName = patient.full_name || patient.first_name + ' ' + patient.last_name;
             
-            // Hide details, show assessment
-            document.getElementById('patientDetailsSection').style.display = 'none';
-            document.getElementById('embeddedAssessmentSection').style.display = 'block';
-            
             // Clear previous chat
             document.getElementById('assessmentChat').innerHTML = '';
             
@@ -1380,84 +1377,22 @@
             await startEmbeddedAssessment(patient.patient_id, patientName);
         }
 
+        // Replace these functions with calls to AssessmentEmbed
         async function startEmbeddedAssessment(patientId, patientName) {
+            document.getElementById('patientDetailsSection').style.display = 'none';
+            document.getElementById('embeddedAssessmentSection').style.display = 'block';
             const clinicId = user.clinicId || user.clinic_id || user.id;
-            
-            try {
-                const response = await fetch('/api/embeddedHealthAgent', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        action: 'start',
-                        clinicId: clinicId,
-                        patientId: patientId,
-                        patientName: patientName
-                    })
-                });
-                
-                const data = await response.json();
-                currentAssessmentSession = data.sessionId;
-                
-                // Display first message
-                addChatMessage(data.message, 'assistant');
-                
-            } catch (error) {
-                console.error('Error starting assessment:', error);
-                showAlert('Error starting assessment', 'error');
-            }
+            await AssessmentEmbed.init(patientId, patientName, clinicId);
+            AssessmentEmbed.setupListeners();
         }
 
-        function addChatMessage(message, sender) {
-            const chatDiv = document.getElementById('assessmentChat');
-            const msgDiv = document.createElement('div');
-            msgDiv.className = `chat-message ${sender}`;
-            msgDiv.textContent = message;
-            chatDiv.appendChild(msgDiv);
-            chatDiv.scrollTop = chatDiv.scrollHeight;
-        }
-
-        async function sendAssessmentMessage() {
+        function sendAssessmentMessage() {
             const input = document.getElementById('assessmentInput');
-            const message = input.value.trim();
-            if (!message) return;
-            
-            addChatMessage(message, 'user');
-            input.value = '';
-            
-            try {
-                const response = await fetch('/api/embeddedHealthAgent', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        action: 'chat',
-                        sessionId: currentAssessmentSession,
-                        message: message
-                    })
-                });
-                
-                const data = await response.json();
-                addChatMessage(data.message, 'assistant');
-                
-                if (data.phase === 'report_complete') {
-                    showAlert('Assessment completed successfully!', 'success');
-                    setTimeout(() => {
-                        document.getElementById('embeddedAssessmentSection').style.display = 'none';
-                        backToPatientList();
-                        loadDashboard(); // Refresh data
-                    }, 3000);
-                }
-            } catch (error) {
-                console.error('Error sending message:', error);
-                showAlert('Error sending message', 'error');
-            }
+            AssessmentEmbed.sendMessage(input.value.trim());
         }
 
         function cancelAssessment() {
-            if (confirm('Are you sure you want to cancel this assessment?')) {
-                document.getElementById('embeddedAssessmentSection').style.display = 'none';
-                backToPatientList();
-                currentAssessmentSession = null;
-            }
+            AssessmentEmbed.cancel();
         }
 
         function startAssessmentForPatientDirect(patientId, patientName) {
