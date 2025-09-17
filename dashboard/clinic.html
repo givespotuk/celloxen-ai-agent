@@ -1244,7 +1244,7 @@
         async function viewPatientFullDetails(patientId) {
             showSection('patients');
             const clinicId = user.clinicId || user.clinic_id || user.id;
-            
+        
             try {
                 const response = await fetch('/api/getPatientFullDetails', {
                     method: 'POST',
@@ -1256,15 +1256,21 @@
                         clinicId: clinicId
                     })
                 });
-
                 if (response.ok) {
                     const data = await response.json();
                     currentPatientDetails = data;
-                    displayPatientDetails(data);
-                    
-                    // Hide list view, show details view
-                    document.getElementById('patientListView').style.display = 'none';
-                    document.getElementById('patientDetailsSection').style.display = 'block';
+        
+                    // Ensure patient data exists before displaying
+                    if (data.patient && data.patient.patient_id) {
+                        displayPatientDetails(data);
+        
+                        // Hide list view, show details view
+                        document.getElementById('patientListView').style.display = 'none';
+                        document.getElementById('patientDetailsSection').style.display = 'block';
+                    } else {
+                        showAlert('Patient details not found', 'error');
+                        loadDashboard(); // Refresh the data
+                    }
                 }
             } catch (error) {
                 console.error('Error loading patient details:', error);
@@ -1697,14 +1703,14 @@
             const firstName = document.getElementById('firstName').value;
             const lastName = document.getElementById('lastName').value;
             const phone = document.getElementById('patientPhone').value;
-            
+        
             if (!firstName || !lastName || !phone) {
                 showAlert('Please fill required fields', 'error');
                 return;
             }
-            
+        
             const clinicId = user.clinicId || user.clinic_id || user.id;
-            
+        
             try {
                 const response = await fetch('/api/addPatient', {
                     method: 'POST',
@@ -1721,19 +1727,23 @@
                         postcode: document.getElementById('postcode').value
                     })
                 });
-                
+        
                 const data = await response.json();
                 if (data.success) {
                     showAlert('Patient registered successfully!', 'success');
                     hideNewPatientForm();
+        
+                    // Clear form
                     document.getElementById('newPatientForm').querySelectorAll('input').forEach(input => input.value = '');
                     document.getElementById('gender').value = '';
-                    loadDashboard();
-                    
-                    // View the new patient details
+        
+                    // Reload dashboard to get fresh data
+                    await loadDashboard();
+        
+                    // Small delay to ensure data is loaded
                     setTimeout(() => {
                         viewPatientFullDetails(data.patient.patient_id);
-                    }, 500);
+                    }, 1000);
                 } else {
                     showAlert('Registration failed: ' + (data.message || 'Unknown error'), 'error');
                 }
