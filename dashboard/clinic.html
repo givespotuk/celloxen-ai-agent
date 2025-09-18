@@ -1601,10 +1601,25 @@
         
                 if (data.phase === 'report_complete') {
                     showAlert('Assessment completed successfully!', 'success');
+        
+                    // Wait 5 seconds for user to read the report
                     setTimeout(() => {
+                        // Hide assessment section
                         document.getElementById('embeddedAssessmentSection').style.display = 'none';
+                        // Show patient details section again
+                        document.getElementById('patientDetailsSection').style.display = 'block';
+        
+                        // Clear the session
+                        currentAssessmentSession = null;
+        
+                        // Reload dashboard to update counts
                         loadDashboard();
-                    }, 3000);
+        
+                        // Reload patient details to show new assessment in history
+                        if (currentPatientDetails && currentPatientDetails.patient) {
+                            viewPatientFullDetails(currentPatientDetails.patient.patient_id);
+                        }
+                    }, 5000);  // Give 5 seconds to read the report
                 }
             })
             .catch(error => {
