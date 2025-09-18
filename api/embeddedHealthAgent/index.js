@@ -189,6 +189,12 @@ const THERAPIES = {
   }
 };
 
+const SYSTEM_INSTRUCTIONS = {
+    persona: "You are 'Cello,' a clinical assistant program helping structure consultations. Never refer to yourself as AI, bot, or program. Use British English exclusively.",
+    deflection: "I can only assist with questions related to this health assessment. Shall we continue?",
+    formatting: "Always provide choices where appropriate, especially for yes/no questions."
+};
+
 const SUPPLEMENT_PROTOCOLS = {
     '101': [ // Deep Sleep Renewal
         {
@@ -274,6 +280,24 @@ const SUPPLEMENT_PROTOCOLS = {
             priority: 'optional'
         }
     ],
+    '103': [ // Relaxation & Calm
+        {
+            name: 'L-Theanine',
+            brand: 'Solgar, NOW Foods, Jarrow',
+            dosage: '200mg twice daily',
+            timing: 'Morning and evening',
+            duration: '8 weeks',
+            priority: 'essential'
+        },
+        {
+            name: 'Passionflower',
+            brand: 'A.Vogel Passiflora, Schwabe Pharma',
+            dosage: '350mg',
+            timing: 'Twice daily',
+            duration: '6-8 weeks',
+            priority: 'recommended'
+        }
+    ],
     '301': [ // Heart Health
         {
             name: 'CoQ10 Ubiquinol',
@@ -296,6 +320,42 @@ const SUPPLEMENT_PROTOCOLS = {
             brand: 'Solgar, Nutri Advanced, BioCare',
             dosage: '400mg',
             timing: 'Evening',
+            duration: 'Ongoing',
+            priority: 'recommended'
+        }
+    ],
+    '302': [ // Blood Pressure
+        {
+            name: 'Beetroot Extract',
+            brand: 'Beet It Sport, Love Beets, Cherry Active',
+            dosage: '500mg',
+            timing: 'Morning',
+            duration: '8 weeks',
+            priority: 'essential'
+        },
+        {
+            name: 'Aged Garlic Extract',
+            brand: 'Kyolic, Quest Kyolic, Solgar',
+            dosage: '600mg',
+            timing: 'Daily with meals',
+            duration: '12 weeks',
+            priority: 'essential'
+        }
+    ],
+    '401': [ // Gout Relief
+        {
+            name: 'Montmorency Cherry Extract',
+            brand: 'CherryActive, Healthspan',
+            dosage: '480mg',
+            timing: 'Daily',
+            duration: '8 weeks minimum',
+            priority: 'essential'
+        },
+        {
+            name: 'Vitamin C',
+            brand: 'Solgar Ester-C, BioCare Vitamin C',
+            dosage: '500mg',
+            timing: 'Daily',
             duration: 'Ongoing',
             priority: 'recommended'
         }
@@ -326,6 +386,60 @@ const SUPPLEMENT_PROTOCOLS = {
             priority: 'recommended'
         }
     ],
+    '601': [ // Digestive Balance
+        {
+            name: 'Multi-Strain Probiotic',
+            brand: 'Bio-Kult Advanced, Optibac, Symprove',
+            dosage: '14 billion CFU',
+            timing: 'Morning before food',
+            duration: '8 weeks',
+            priority: 'essential'
+        },
+        {
+            name: 'Digestive Enzymes',
+            brand: 'Solgar Digestive Enzymes, NOW Super Enzymes',
+            dosage: '1 capsule',
+            timing: 'With meals',
+            duration: 'As needed',
+            priority: 'recommended'
+        }
+    ],
+    '602': [ // Energy Boost
+        {
+            name: 'B12 Methylcobalamin',
+            brand: 'Solgar, Jarrow Methyl B12, Better You B12',
+            dosage: '1000mcg',
+            timing: 'Morning sublingual',
+            duration: 'Ongoing',
+            priority: 'essential'
+        },
+        {
+            name: 'Iron Bisglycinate',
+            brand: 'Solgar Gentle Iron, Floradix',
+            dosage: '25mg',
+            timing: 'With vitamin C',
+            duration: 'As per blood tests',
+            priority: 'recommended'
+        }
+    ],
+    '100': [ // Blood Sugar Balance
+        {
+            name: 'Chromium Picolinate',
+            brand: 'Solgar, Holland & Barrett',
+            dosage: '200mcg',
+            timing: 'With meals',
+            duration: '12 weeks',
+            priority: 'essential'
+        },
+        {
+            name: 'Alpha Lipoic Acid',
+            brand: 'Solgar, Doctor\'s Best',
+            dosage: '300mg',
+            timing: 'Twice daily',
+            duration: '8 weeks',
+            priority: 'recommended'
+        }
+    ],
     '801': [ // Total Wellness
         {
             name: 'Multivitamin/Mineral',
@@ -353,20 +467,6 @@ const SUPPLEMENT_PROTOCOLS = {
         }
     ]
 };
-
-const SYSTEM_INSTRUCTIONS = {
-    persona: "You are 'Cello,' a clinical assistant program helping structure consultations. Never refer to yourself as AI, bot, or program. Use British English exclusively.",
-    deflection: "I can only assist with questions related to this health assessment. Shall we continue?",
-    formatting: "Always provide choices where appropriate, especially for yes/no questions."
-};
-
-function formatResponse(message, choices = null) {
-    return {
-        message: message,
-        choices: choices || [],
-        requiresInput: choices ? false : true
-    };
-}
 
 const embeddedSessions = {};
 
@@ -461,16 +561,7 @@ module.exports = async function (context, req) {
     
     if (action === 'start') {
         if (session.useEnhanced) {
-            response = `Good morning Dr. ${session.practitionerName}. I'm Cello, your holistic health assessment assistant.
-            
-I'll be helping you conduct a comprehensive bioelectronic therapy assessment for ${session.patientName}.
-
-Patient Information:
-- Name: ${session.patientName}
-- Age: ${session.patientAge} years
-- Gender: ${session.patientGender}
-
-Let's begin the assessment. Please confirm you're ready to proceed.`;
+            response = await processEnhancedConversation(session, message);
         } else {
             response = `Starting assessment for ${session.patientName}.\n\nReady to begin the health assessment? Type 'yes' to continue.`;
         }
