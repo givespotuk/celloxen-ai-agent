@@ -1,5 +1,6 @@
 const { BotFrameworkAdapter, TurnContext } = require('botbuilder');
 const db = require('../shared/database');
+const { getNextQuestion, PHASES } = require('./assessmentLogic');
 
 // Initialize bot adapter
 const adapter = new BotFrameworkAdapter({
@@ -28,7 +29,7 @@ module.exports = async function (context, req) {
                         success: true,
                         sessionId: sessionId,
                         message: response,
-                        phase: 'initial_greeting'
+                        phase: 'greeting'
                     }
                 };
                 break;
@@ -67,7 +68,7 @@ module.exports = async function (context, req) {
 };
 
 async function initializeAssessment(sessionId, clinicId, patientData, practitionerName) {
-    // Initialize session
+    // Initialize session with all patient data
     sessions[sessionId] = {
         clinicId: clinicId,
         practitionerName: practitionerName,
@@ -75,10 +76,14 @@ async function initializeAssessment(sessionId, clinicId, patientData, practition
         patientAge: calculateAge(patientData.dob),
         patientGender: patientData.gender,
         patientDOB: patientData.dob,
-        phase: 'greeting',
+        phase: PHASES.GREETING,
         symptoms: [],
         severityScores: {},
-        responses: []
+        responses: [],
+        primaryConcern: '',
+        duration: '',
+        lifestyle: '',
+        medicalHistory: ''
     };
     
     // Save to database
@@ -86,7 +91,9 @@ async function initializeAssessment(sessionId, clinicId, patientData, practition
         sessionId: sessionId,
         clinicId: clinicId,
         practitionerName: practitionerName,
-        patientName: patientData.name
+        patientName: patientData.name,
+        patientDob: patientData.dob,
+        patientGender: patientData.gender
     });
     
     // Generate personalized greeting
@@ -100,7 +107,7 @@ Patient Information:
 - Gender: ${patientData.gender}
 - Date of Birth: ${patientData.dob}
 
-Let's begin the assessment. Please ask ${patientData.name} to describe their primary health concern in their own words.`;
+Let's begin the assessment. Please confirm you're ready to proceed.`;
     
     return greeting;
 }
@@ -108,30 +115,55 @@ Let's begin the assessment. Please ask ${patientData.name} to describe their pri
 async function processAssessment(sessionId, message, clinicId) {
     const session = sessions[sessionId];
     if (!session) {
-        throw new Error('Session not found');
+        throw new Error('Session not found. Please restart the assessment.');
     }
     
-    // Save user message
+    // Save user message to database
     await db.saveMessage(sessionId, 'user', message, session.phase);
     session.responses.push(message);
     
-    // Process based on current phase
-    let response = await getNextQuestion(session, message);
+    // Get next question using assessment logic
+    const response = getNextQuestion(session, message);
     
-    // Save assistant response
+    // Save assistant response to database
     await db.saveMessage(sessionId, 'assistant', response.message, response.phase);
+    
+    // If assessment is complete, save the report
+    if (response.isComplete && response.report) {
+        await saveReport(sessionId, clinicId, session, response.report);
+    }
     
     return response;
 }
 
-async function getNextQuestion(session, userResponse) {
-    // This will contain the assessment logic
-    // We'll expand this in the next step
-    return {
-        message: "Processing your response...",
-        phase: session.phase,
-        isComplete: false
-    };
+async function saveReport(sessionId, clinicId, session, reportContent) {
+    try {
+        // Extract therapy code from report (simple parsing)
+        const therapyMatch = reportContent.match(/Therapy Code: (\d+)/);
+        const therapyCode = therapyMatch ? therapyMatch[1] : '801';
+        
+        const therapyNameMatch = reportContent.match(/Therapy Name: (.+)/);
+        const therapyName = therapyNameMatch ? therapyNameMatch[1].trim() : 'Total Wellness Package';
+        
+        await db.saveReport({
+            sessionId: sessionId,
+            clinicId: clinicId,
+            reportContent: reportContent,
+            symptoms: session.symptoms.join(', '),
+            severityScore: session.severityScores.primary || 5,
+            therapyCode: therapyCode,
+            therapyName: therapyName,
+            supplements: 'Personalized recommendations pending'
+        });
+        
+        // Update session status
+        await db.query(
+            'UPDATE ai_agent_sessions SET status = $1, completed_at = NOW(), recommended_therapy_code = $2, recommended_therapy_name = $3 WHERE session_id = $4',
+            ['completed', therapyCode, therapyName, sessionId]
+        );
+    } catch (error) {
+        console.error('Error saving report:', error);
+    }
 }
 
 function calculateAge(dob) {
