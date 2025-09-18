@@ -4,6 +4,8 @@
   "dependencies": {
     "pg": "^8.11.3",
     "uuid": "^9.0.1",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "botbuilder": "^4.21.3",
+    "botbuilder-ai": "^4.21.3"
   }
 }
