@@ -710,6 +710,43 @@
                 grid-template-columns: 1fr;
             }
         }
+        
+        /* Add these styles to the existing <style> section */
+        .chat-choices {
+            margin: 15px 0;
+            padding: 10px;
+            background: #f0f8ff;
+            border-radius: 8px;
+        }
+        .choice-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 180, 216, 0.4);
+        }
+        .choice-btn:disabled {
+            background: #6c757d !important;
+            cursor: not-allowed !important;
+        }
+        .chat-message {
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        /* Style for assessment completion message */
+        .assessment-complete {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            border: 1px solid #c3e6cb;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
     </style>
 </head>
 <body>
@@ -1530,9 +1567,21 @@
 
         // Embedded Assessment Functions
         let currentAssessmentSession = null;
+        
         async function startEmbeddedAssessment(patientId, patientName) {
             document.getElementById('patientDetailsSection').style.display = 'none';
             document.getElementById('embeddedAssessmentSection').style.display = 'block';
+        
+            // Clear and prepare the chat interface
+            const chatDiv = document.getElementById('assessmentChat');
+            const input = document.getElementById('assessmentInput');
+        
+            if (chatDiv) chatDiv.innerHTML = '';
+            if (input) {
+                input.disabled = false;
+                input.placeholder = 'Type your response or select an option above...';
+                input.value = '';
+            }
         
             const clinicId = user.clinicId || user.clinic_id || user.id;
         
@@ -1544,47 +1593,124 @@
                         action: 'start',
                         clinicId: clinicId,
                         patientId: patientId,
-                        patientName: patientName
+                        patientName: patientName,
+                        useEnhanced: true // Force enhanced mode
                     })
                 });
         
                 const data = await response.json();
                 currentAssessmentSession = data.sessionId;
         
-                // Clear chat and display first message
-                document.getElementById('assessmentChat').innerHTML = '';
-                addChatMessage(data.message, 'assistant');
+                // Display first message with any choices
+                addChatMessage(data.message, 'assistant', data.choices || []);
         
             } catch (error) {
                 console.error('Error starting assessment:', error);
-                showAlert('Failed to start assessment', 'error');
+                showAlert('Failed to start assessment. Please try again.', 'error');
             }
         }
-        
-        function addChatMessage(message, sender) {
+
+        function addChatMessage(message, sender, choices = []) {
             const chatDiv = document.getElementById('assessmentChat');
             if (!chatDiv) return;
-        
             const msgDiv = document.createElement('div');
             msgDiv.className = `chat-message ${sender}`;
         
-            if (message.includes('\n')) {
+            // Handle the message text
+            if (message && message.includes('\n')) {
                 msgDiv.innerHTML = message.replace(/\n/g, '<br>');
             } else {
-                msgDiv.textContent = message;
+                msgDiv.textContent = message || '';
+            }
+            chatDiv.appendChild(msgDiv);
+        
+            // Add choice buttons if present
+            if (sender === 'assistant' && choices && choices.length > 0) {
+                const choiceContainer = document.createElement('div');
+                choiceContainer.className = 'chat-choices';
+                choiceContainer.style.cssText = `
+                    margin: 15px 0;
+                    display: flex;
+                    gap: 10px;
+                    flex-wrap: wrap;
+                    padding-left: 10px;
+                `;
+        
+                choices.forEach(choiceText => {
+                    const choiceButton = document.createElement('button');
+                    choiceButton.textContent = choiceText;
+                    choiceButton.className = 'choice-btn';
+                    choiceButton.style.cssText = `
+                        padding: 10px 20px;
+                        background: linear-gradient(135deg, #00b4d8 0%, #0077b6 100%);
+                        color: white;
+                        border: none;
+                        border-radius: 25px;
+                        cursor: pointer;
+                        font-size: 14px;
+                        font-weight: 500;
+                        transition: all 0.3s ease;
+                        box-shadow: 0 2px 5px rgba(0, 117, 182, 0.3);
+                    `;
+        
+                    // Add hover effect
+                    choiceButton.onmouseover = function() {
+                        this.style.transform = 'translateY(-2px)';
+                        this.style.boxShadow = '0 4px 10px rgba(0, 117, 182, 0.4)';
+                    };
+        
+                    choiceButton.onmouseout = function() {
+                        if (!this.disabled) {
+                            this.style.transform = 'translateY(0)';
+                            this.style.boxShadow = '0 2px 5px rgba(0, 117, 182, 0.3)';
+                        }
+                    };
+        
+                    choiceButton.onclick = function() {
+                        // Send choice as user message
+                        sendAssessmentMessage(choiceText);
+        
+                        // Disable all buttons after selection
+                        choiceContainer.querySelectorAll('button').forEach(btn => {
+                            btn.disabled = true;
+                            btn.style.opacity = '0.5';
+                            btn.style.cursor = 'not-allowed';
+                            btn.style.background = '#6c757d';
+                        });
+        
+                        // Visual feedback for selected button
+                        this.style.background = '#28a745';
+                        this.style.opacity = '0.8';
+                    };
+        
+                    choiceContainer.appendChild(choiceButton);
+                });
+        
+                chatDiv.appendChild(choiceContainer);
             }
         
-            chatDiv.appendChild(msgDiv);
             chatDiv.scrollTop = chatDiv.scrollHeight;
         }
         
-        function sendAssessmentMessage() {
+        function sendAssessmentMessage(presetMessage = null) {
             const input = document.getElementById('assessmentInput');
-            const message = input.value.trim();
+            const message = presetMessage || input.value.trim();
+        
             if (!message || !currentAssessmentSession) return;
         
-            addChatMessage(message, 'user');
-            input.value = '';
+            // Only add user message if it's not already added by button click
+            if (!presetMessage) {
+                addChatMessage(message, 'user');
+            } else {
+                // For button clicks, show the selected choice as a user message
+                addChatMessage(message, 'user');
+            }
+        
+            // Clear the input field
+            if (input) input.value = '';
+        
+            // Disable input while processing
+            if (input) input.disabled = true;
         
             fetch('/api/embeddedHealthAgent', {
                 method: 'POST',
@@ -1592,40 +1718,134 @@
                 body: JSON.stringify({
                     action: 'chat',
                     sessionId: currentAssessmentSession,
-                    message: message
+                    message: message,
+                    clinicId: user.clinicId || user.clinic_id || user.id
                 })
             })
             .then(response => response.json())
             .then(data => {
-                addChatMessage(data.message, 'assistant');
+                // Re-enable input
+                if (input) input.disabled = false;
         
-                if (data.phase === 'report_complete') {
-                    showAlert('Assessment completed successfully!', 'success');
+                // Display the assistant's response with choices if available
+                addChatMessage(data.message, 'assistant', data.choices || []);
         
-                    // Wait 5 seconds for user to read the report
-                    setTimeout(() => {
-                        // Hide assessment section
-                        document.getElementById('embeddedAssessmentSection').style.display = 'none';
-                        // Show patient details section again
-                        document.getElementById('patientDetailsSection').style.display = 'block';
+                // Handle assessment completion
+                if (data.isComplete || data.phase === 'report_complete' || data.phase === 'report') {
+                    handleAssessmentComplete();
+                }
         
-                        // Clear the session
-                        currentAssessmentSession = null;
-        
-                        // Reload dashboard to update counts
-                        loadDashboard();
-        
-                        // Reload patient details to show new assessment in history
-                        if (currentPatientDetails && currentPatientDetails.patient) {
-                            viewPatientFullDetails(currentPatientDetails.patient.patient_id);
-                        }
-                    }, 5000);  // Give 5 seconds to read the report
+                // Focus back to input if no choices are present
+                if (!data.choices || data.choices.length === 0) {
+                    if (input) input.focus();
                 }
             })
             .catch(error => {
                 console.error('Error sending message:', error);
-                showAlert('Failed to send message', 'error');
+                showAlert('Failed to send message. Please try again.', 'error');
+                if (input) input.disabled = false;
             });
+        }
+        
+        function handleAssessmentComplete() {
+            showAlert('Assessment completed successfully!', 'success');
+        
+            // Disable further input
+            const input = document.getElementById('assessmentInput');
+            if (input) {
+                input.disabled = true;
+                input.placeholder = 'Assessment completed';
+            }
+        
+            // Add completion message with action buttons
+            const chatDiv = document.getElementById('assessmentChat');
+            if (chatDiv) {
+                const completionDiv = document.createElement('div');
+                completionDiv.style.cssText = `
+                    margin: 20px 0;
+                    padding: 20px;
+                    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+                    border-radius: 10px;
+                    text-align: center;
+                `;
+        
+                completionDiv.innerHTML = `
+                    <p style="color: #155724; font-weight: 600; margin-bottom: 15px;">
+                        Assessment completed successfully! The report has been saved.
+                    </p>
+                    <div style="display: flex; gap: 10px; justify-content: center;">
+                        <button onclick="viewCompletedAssessment()" style="
+                            padding: 10px 20px;
+                            background: #28a745;
+                            color: white;
+                            border: none;
+                            border-radius: 5px;
+                            cursor: pointer;
+                            font-weight: 500;
+                        ">View Report</button>
+                        <button onclick="startNewAssessmentAfterComplete()" style="
+                            padding: 10px 20px;
+                            background: #007bff;
+                            color: white;
+                            border: none;
+                            border-radius: 5px;
+                            cursor: pointer;
+                            font-weight: 500;
+                        ">New Assessment</button>
+                        <button onclick="returnToPatientDetails()" style="
+                            padding: 10px 20px;
+                            background: #6c757d;
+                            color: white;
+                            border: none;
+                            border-radius: 5px;
+                            cursor: pointer;
+                            font-weight: 500;
+                        ">Back to Patient</button>
+                    </div>
+                `;
+        
+                chatDiv.appendChild(completionDiv);
+                chatDiv.scrollTop = chatDiv.scrollHeight;
+            }
+        
+            // Refresh dashboard data
+            setTimeout(() => {
+                loadDashboard();
+            }, 1000);
+        }
+        
+        function viewCompletedAssessment() {
+            // Scroll to the report in the chat
+            const chatDiv = document.getElementById('assessmentChat');
+            if (chatDiv) {
+                chatDiv.scrollTop = chatDiv.scrollHeight;
+            }
+        }
+        
+        function startNewAssessmentAfterComplete() {
+            if (confirm('Start a new assessment for this patient?')) {
+                // Clear the chat
+                document.getElementById('assessmentChat').innerHTML = '';
+                document.getElementById('assessmentInput').disabled = false;
+                document.getElementById('assessmentInput').placeholder = 'Type your response...';
+                document.getElementById('assessmentInput').value = '';
+        
+                // Start new assessment
+                if (currentPatientDetails && currentPatientDetails.patient) {
+                    startAssessmentFromDetails();
+                }
+            }
+        }
+        
+        function returnToPatientDetails() {
+            document.getElementById('embeddedAssessmentSection').style.display = 'none';
+            document.getElementById('patientDetailsSection').style.display = 'block';
+            currentAssessmentSession = null;
+        
+            // Reload patient details to show new assessment
+            if (currentPatientDetails && currentPatientDetails.patient) {
+                viewPatientFullDetails(currentPatientDetails.patient.patient_id);
+            }
         }
         
         function cancelAssessment() {
