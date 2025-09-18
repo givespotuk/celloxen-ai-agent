@@ -1,7 +1,7 @@
 const { v4: uuidv4 } = require('uuid');
 const db = require('../shared/database');
 
-// Copy THERAPIES from original HealthAgent
+// Keep all existing THERAPIES
 const THERAPIES = {
   '101': { name: 'Deep Sleep Renewal Therapy', keywords: ['insomnia', 'sleep', 'awakening', 'nighttime', 'can\'t sleep'], priority: ['sleep'] },
   '102': { name: 'Stress Relief Therapy', keywords: ['stress', 'burnout', 'tension', 'overwhelm', 'pressure'], priority: ['stress', 'work'] },
@@ -37,12 +37,144 @@ module.exports = async function (context, req) {
     const clinicId = req.body?.clinicId;
     const patientId = req.body?.patientId;
     const patientName = req.body?.patientName;
+    const useBotService = req.body?.useBotService || false; // Flag to use new bot service
     
-    // Initialize session for embedded assessment
+    // Try to use the new bot service if available
+    if (useBotService && process.env.BOT_APP_ID && process.env.BOT_APP_PASSWORD) {
+        try {
+            const fetch = require('node-fetch');
+            
+            if (action === 'start') {
+                // Get patient details from database
+                let patientData = {
+                    name: patientName || 'Patient',
+                    dob: '1980-01-01',
+                    gender: 'Not specified'
+                };
+                
+                if (patientId) {
+                    const { Pool } = require('pg');
+                    const pool = new Pool({
+                        host: process.env.DB_HOST,
+                        database: process.env.DB_NAME,
+                        user: process.env.DB_USER,
+                        password: process.env.DB_PASSWORD,
+                        port: 5432,
+                        ssl: { rejectUnauthorized: false }
+                    });
+                    
+                    const result = await pool.query(
+                        'SELECT full_name, first_name, last_name, date_of_birth, gender FROM patients WHERE patient_id = $1',
+                        [patientId]
+                    );
+                    
+                    if (result.rows.length > 0) {
+                        const patient = result.rows[0];
+                        patientData.name = patient.full_name || `${patient.first_name} ${patient.last_name}`;
+                        patientData.dob = patient.date_of_birth || '1980-01-01';
+                        patientData.gender = patient.gender || 'Not specified';
+                    }
+                    
+                    await pool.end();
+                }
+                
+                // Call bot service
+                const apiUrl = process.env.API_URL || 'https://celloxen.com';
+                const botResponse = await fetch(`${apiUrl}/api/botService`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'startHolisticAssessment',
+                        sessionId: sessionId,
+                        clinicId: clinicId,
+                        practitionerName: 'Clinic Staff',
+                        patientData: patientData
+                    })
+                });
+                
+                if (botResponse.ok) {
+                    const botData = await botResponse.json();
+                    context.res = {
+                        status: 200,
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Access-Control-Allow-Origin': '*'
+                        },
+                        body: {
+                            success: true,
+                            sessionId: sessionId,
+                            message: botData.message,
+                            phase: botData.phase,
+                            usingBot: true
+                        }
+                    };
+                    return;
+                }
+            } else {
+                // Continue with bot service
+                const apiUrl = process.env.API_URL || 'https://celloxen.com';
+                const botResponse = await fetch(`${apiUrl}/api/botService`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'continueAssessment',
+                        sessionId: sessionId,
+                        clinicId: clinicId,
+                        message: message
+                    })
+                });
+                
+                if (botResponse.ok) {
+                    const botData = await botResponse.json();
+                    
+                    // Update patient last assessment date if complete
+                    if (botData.isComplete && patientId) {
+                        const { Pool } = require('pg');
+                        const pool = new Pool({
+                            host: process.env.DB_HOST,
+                            database: process.env.DB_NAME,
+                            user: process.env.DB_USER,
+                            password: process.env.DB_PASSWORD,
+                            port: 5432,
+                            ssl: { rejectUnauthorized: false }
+                        });
+                        
+                        await pool.query(
+                            'UPDATE patients SET last_assessment_date = NOW() WHERE patient_id = $1',
+                            [patientId]
+                        );
+                        await pool.end();
+                    }
+                    
+                    context.res = {
+                        status: 200,
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Access-Control-Allow-Origin': '*'
+                        },
+                        body: {
+                            success: true,
+                            sessionId: sessionId,
+                            message: botData.message,
+                            phase: botData.phase,
+                            isComplete: botData.isComplete,
+                            usingBot: true
+                        }
+                    };
+                    return;
+                }
+            }
+        } catch (botError) {
+            context.log('Bot service error, falling back to original:', botError);
+            // Fall through to original implementation
+        }
+    }
+    
+    // Original implementation (fallback or when bot service not available)
     if (!embeddedSessions[sessionId]) {
         embeddedSessions[sessionId] = {
             id: sessionId,
-            phase: 'ready_check',  // Skip greeting and patient registration
+            phase: 'ready_check',
             clinicId: clinicId,
             patientId: patientId,
             patientName: patientName,
@@ -55,7 +187,6 @@ module.exports = async function (context, req) {
             aiAnalysis: null
         };
         
-        // Save session immediately with patient info
         try {
             await db.saveSession({
                 sessionId: sessionId,
@@ -74,11 +205,9 @@ module.exports = async function (context, req) {
     if (action === 'start') {
         response = `Starting assessment for ${patientName}.\n\nReady to begin the health assessment? Type 'yes' to continue.`;
     } else {
-        // Use conversation flow from original
         response = await processEmbeddedConversation(session, message);
     }
     
-    // Save messages
     try {
         await db.saveMessage(sessionId, 'user', message, session.phase);
         await db.saveMessage(sessionId, 'assistant', response, session.phase);
@@ -86,7 +215,6 @@ module.exports = async function (context, req) {
         console.log('DB save error (non-critical):', dbError);
     }
     
-    // Update patient last_assessment_date when complete
     if (session.phase === 'report_complete' && patientId) {
         try {
             const { Pool } = require('pg');
@@ -119,11 +247,13 @@ module.exports = async function (context, req) {
             success: true,
             sessionId: sessionId,
             message: response,
-            phase: session.phase
+            phase: session.phase,
+            usingBot: false
         }
     };
 };
 
+// Keep all existing functions unchanged
 async function processEmbeddedConversation(session, message) {
     const lower = message.toLowerCase();
     
@@ -213,14 +343,12 @@ async function processEmbeddedConversation(session, message) {
         case 'assess_diabetes':
             session.symptoms.push(message);
             
-            // Select best therapy
             const therapy = selectBestTherapy(session);
             session.recommendedTherapy = therapy;
             session.phase = 'report_complete';
             
             const fullReport = generateReport(session, therapy);
             
-            // Save report to database
             try {
                 const supplementText = 'Standard supplements';
                 await db.saveReport({
@@ -256,7 +384,6 @@ function selectBestTherapy(session) {
     for (const [code, therapy] of Object.entries(THERAPIES)) {
         let score = 0;
         
-        // Primary symptom matching
         const primarySymptom = session.symptoms[0].toLowerCase();
         for (const keyword of therapy.keywords) {
             if (primarySymptom.includes(keyword)) {
@@ -264,7 +391,6 @@ function selectBestTherapy(session) {
             }
         }
         
-        // Secondary symptoms
         for (let i = 1; i < session.symptoms.length; i++) {
             const symptom = session.symptoms[i].toLowerCase();
             for (const keyword of therapy.keywords) {
@@ -277,7 +403,6 @@ function selectBestTherapy(session) {
         therapyScores[code] = score;
     }
     
-    // Find best match
     let bestCode = '801';
     let highestScore = 0;
     
