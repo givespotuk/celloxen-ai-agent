@@ -13,34 +13,68 @@ module.exports = async function (context, req) {
     try {
         const { sessionId, clinicId } = req.body;
         
-        // Get assessment details
-        const sessionResult = await pool.query(
-            `SELECT s.*, r.report_content, r.supplement_recommendations
-             FROM ai_agent_sessions s
-             LEFT JOIN ai_agent_reports r ON s.session_id = r.session_id
-             WHERE s.session_id = $1 AND s.clinic_id = $2`,
+        // Get assessment details from ai_agent_sessions only
+        const result = await pool.query(
+            `SELECT * FROM ai_agent_sessions 
+             WHERE session_id = $1 AND clinic_id = $2`,
             [sessionId, clinicId]
         );
         
-        // Get messages
-        const messagesResult = await pool.query(
-            `SELECT * FROM ai_agent_messages 
-             WHERE session_id = $1 
-             ORDER BY timestamp ASC`,
-            [sessionId]
-        );
-        
-        context.res = {
-            body: { 
-                success: true,
-                assessment: sessionResult.rows[0] || {},
-                messages: messagesResult.rows || []
-            }
-        };
+        if (result.rows.length > 0) {
+            const assessment = result.rows[0];
+            
+            // Create a basic report if none exists
+            const reportContent = `
+CELLOXEN ASSESSMENT REPORT
+===========================
+Session ID: ${assessment.session_id}
+Patient: ${assessment.patient_name}
+Date: ${new Date(assessment.started_at).toLocaleDateString('en-GB')}
+Status: ${assessment.status}
+
+THERAPY RECOMMENDATION
+----------------------
+Code: ${assessment.recommended_therapy_code || 'N/A'}
+Name: ${assessment.recommended_therapy_name || 'Pending'}
+
+PATIENT INFORMATION
+-------------------
+DOB: ${assessment.patient_dob || 'N/A'}
+Gender: ${assessment.patient_gender || 'N/A'}
+
+ASSESSMENT DETAILS
+------------------
+Started: ${new Date(assessment.started_at).toLocaleString('en-GB')}
+Completed: ${assessment.completed_at ? new Date(assessment.completed_at).toLocaleString('en-GB') : 'In Progress'}
+Practitioner: ${assessment.practitioner_name}
+===========================`;
+            
+            context.res = {
+                body: { 
+                    success: true,
+                    assessment: {
+                        ...assessment,
+                        report_content: reportContent
+                    }
+                }
+            };
+        } else {
+            context.res = {
+                status: 404,
+                body: { 
+                    success: false,
+                    message: 'Assessment not found'
+                }
+            };
+        }
     } catch (error) {
+        context.log('Error:', error);
         context.res = {
             status: 500,
-            body: { success: false, message: error.message }
+            body: { 
+                success: false, 
+                message: error.message 
+            }
         };
     } finally {
         await pool.end();
