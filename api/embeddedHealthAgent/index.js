@@ -189,6 +189,171 @@ const THERAPIES = {
   }
 };
 
+const SUPPLEMENT_PROTOCOLS = {
+    '101': [ // Deep Sleep Renewal
+        {
+            name: 'Magnesium Glycinate',
+            brand: 'Solgar, Nutri Advanced, Pure Encapsulations',
+            dosage: '400mg',
+            timing: '30 minutes before bed',
+            duration: '8 weeks minimum',
+            priority: 'essential'
+        },
+        {
+            name: 'L-Theanine',
+            brand: 'Solgar Theanine, NOW Foods, Jarrow Formulas',
+            dosage: '200mg',
+            timing: 'Evening',
+            duration: '8 weeks',
+            priority: 'essential'
+        },
+        {
+            name: 'Montmorency Cherry Extract',
+            brand: 'CherryActive, Healthspan, Cherry Concentrate',
+            dosage: '480mg',
+            timing: 'Before bed',
+            duration: '8 weeks',
+            priority: 'recommended'
+        },
+        {
+            name: 'Ashwagandha KSM-66',
+            brand: 'Nutri Advanced, Viridian, Fushi',
+            dosage: '600mg',
+            timing: 'Evening',
+            duration: '8-12 weeks',
+            priority: 'recommended'
+        },
+        {
+            name: 'Valerian Root',
+            brand: 'A.Vogel Dormeasan, Nytol Herbal, Kalms Night',
+            dosage: '450mg',
+            timing: 'Before bed',
+            duration: '4-8 weeks',
+            priority: 'optional'
+        }
+    ],
+    '102': [ // Stress Relief
+        {
+            name: 'Ashwagandha KSM-66',
+            brand: 'Nutri Advanced, Viridian, Pukka',
+            dosage: '600mg',
+            timing: 'Morning',
+            duration: '8-12 weeks',
+            priority: 'essential'
+        },
+        {
+            name: 'B-Complex',
+            brand: 'Solgar B-Complex "100", BioCare B Complex, Thorne',
+            dosage: '1 capsule',
+            timing: 'Morning with food',
+            duration: 'Ongoing',
+            priority: 'essential'
+        },
+        {
+            name: 'Omega-3 EPA/DHA',
+            brand: 'Nordic Naturals, Bare Biology, Nutri Advanced',
+            dosage: '2000mg',
+            timing: 'With meals',
+            duration: 'Ongoing',
+            priority: 'recommended'
+        },
+        {
+            name: 'Rhodiola Rosea',
+            brand: 'Viridian, Solgar, Bio-Kult',
+            dosage: '400mg',
+            timing: 'Morning',
+            duration: '8 weeks',
+            priority: 'recommended'
+        },
+        {
+            name: 'Vitamin D3',
+            brand: 'Better You DLux, Nutri Advanced D3 Drops',
+            dosage: '2000IU',
+            timing: 'Morning',
+            duration: 'Ongoing',
+            priority: 'optional'
+        }
+    ],
+    '301': [ // Heart Health
+        {
+            name: 'CoQ10 Ubiquinol',
+            brand: 'Pharma Nord BioActive Q10, Solgar Ubiquinol',
+            dosage: '100mg twice daily',
+            timing: 'With meals',
+            duration: '12 weeks minimum',
+            priority: 'essential'
+        },
+        {
+            name: 'Hawthorn Berry',
+            brand: 'A.Vogel Crataegus, Nature\'s Way',
+            dosage: '500mg',
+            timing: 'Twice daily',
+            duration: '8-12 weeks',
+            priority: 'essential'
+        },
+        {
+            name: 'Magnesium Citrate',
+            brand: 'Solgar, Nutri Advanced, BioCare',
+            dosage: '400mg',
+            timing: 'Evening',
+            duration: 'Ongoing',
+            priority: 'recommended'
+        }
+    ],
+    '402': [ // ArthriComfort
+        {
+            name: 'Glucosamine Sulfate 2KCl',
+            brand: 'Solgar, Seven Seas JointCare, Boots',
+            dosage: '1500mg',
+            timing: 'Daily with food',
+            duration: '12 weeks minimum',
+            priority: 'essential'
+        },
+        {
+            name: 'Chondroitin Sulfate',
+            brand: 'Solgar, NOW Foods, Holland & Barrett',
+            dosage: '1200mg',
+            timing: 'Daily with glucosamine',
+            duration: '12 weeks minimum',
+            priority: 'essential'
+        },
+        {
+            name: 'Turmeric with Black Pepper',
+            brand: 'Solgar Full Spectrum Curcumin, Nutri Advanced',
+            dosage: '500mg',
+            timing: 'Twice daily with meals',
+            duration: 'Ongoing',
+            priority: 'recommended'
+        }
+    ],
+    '801': [ // Total Wellness
+        {
+            name: 'Multivitamin/Mineral',
+            brand: 'Nutri Advanced Multi Essentials, Solgar',
+            dosage: '1 daily',
+            timing: 'With breakfast',
+            duration: 'Ongoing',
+            priority: 'essential'
+        },
+        {
+            name: 'Omega-3 EPA/DHA',
+            brand: 'Nordic Naturals, Bare Biology',
+            dosage: '2000mg',
+            timing: 'With meals',
+            duration: 'Ongoing',
+            priority: 'essential'
+        },
+        {
+            name: 'Milk Thistle Extract',
+            brand: 'Solgar, A.Vogel Milk Thistle',
+            dosage: '300mg',
+            timing: 'Daily',
+            duration: '8 weeks',
+            priority: 'recommended'
+        }
+    ]
+};
+
 const SYSTEM_INSTRUCTIONS = {
     persona: "You are 'Cello,' a clinical assistant program helping structure consultations. Never refer to yourself as AI, bot, or program. Use British English exclusively.",
     deflection: "I can only assist with questions related to this health assessment. Shall we continue?",
