@@ -1831,16 +1831,95 @@
             }
         }
 
-        function viewAssessment(sessionId) {
-            showAlert(`Assessment details for ${sessionId} - Feature coming soon`, 'info');
+        async function viewAssessment(sessionId) {
+            const clinicId = user.clinicId || user.clinic_id || user.id;
+        
+            try {
+                const response = await fetch('/api/getAssessmentDetails', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        sessionId: sessionId,
+                        clinicId: clinicId
+                    })
+                });
+        
+                const data = await response.json();
+        
+                if (data.success && data.assessment) {
+                    // Create modal to display assessment
+                    const modalHTML = `
+                        <div id="assessmentModal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 3000; display: flex; align-items: center; justify-content: center;">
+                            <div style="background: white; padding: 30px; border-radius: 12px; width: 80%; max-width: 800px; max-height: 80vh; overflow-y: auto;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                                    <h3>Assessment Details</h3>
+                                    <button onclick="closeAssessmentModal()" style="background: #dc3545; color: white; border: none; padding: 5px 15px; border-radius: 5px; cursor: pointer;">Close</button>
+                                </div>
+                                <div style="margin-bottom: 15px;">
+                                    <p><strong>Session ID:</strong> ${data.assessment.session_id}</p>
+                                    <p><strong>Patient:</strong> ${data.assessment.patient_name}</p>
+                                    <p><strong>Date:</strong> ${new Date(data.assessment.started_at).toLocaleString('en-GB')}</p>
+                                    <p><strong>Status:</strong> ${data.assessment.status}</p>
+                                    <p><strong>Therapy:</strong> ${data.assessment.recommended_therapy_name || 'Pending'}</p>
+                                </div>
+                                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; white-space: pre-wrap; font-family: monospace;">
+                                    ${data.assessment.report_content || 'No report available'}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    document.body.insertAdjacentHTML('beforeend', modalHTML);
+                } else {
+                    showAlert('Assessment details not found', 'error');
+                }
+            } catch (error) {
+                console.error('Error viewing assessment:', error);
+                showAlert('Error loading assessment details', 'error');
+            }
         }
-
+        
+        function closeAssessmentModal() {
+            const modal = document.getElementById('assessmentModal');
+            if (modal) modal.remove();
+        }
+        
         function downloadReport(sessionId) {
-            showAlert(`Download report for ${sessionId} - Feature coming soon`, 'info');
-        }
-
-        function downloadAllReports() {
-            showAlert('Export functionality coming soon', 'info');
+            const clinicId = user.clinicId || user.clinic_id || user.id;
+        
+            fetch('/api/getAssessmentDetails', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    sessionId: sessionId,
+                    clinicId: clinicId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.assessment) {
+                    // Create text content for download
+                    const reportContent = data.assessment.report_content || 'No report available';
+        
+                    // Create blob and download
+                    const blob = new Blob([reportContent], { type: 'text/plain' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `assessment_${sessionId}_${new Date().toISOString().split('T')[0]}.txt`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+        
+                    showAlert('Report downloaded successfully', 'success');
+                } else {
+                    showAlert('Report not found', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error downloading report:', error);
+                showAlert('Error downloading report', 'error');
+            });
         }
 
         function showSection(sectionName) {
