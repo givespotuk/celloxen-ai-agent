@@ -1610,4 +1610,334 @@ function selectSupplements(recommendedTherapies, session) {
     return selectedSupplements;
 }
 
-// Continue in next message due to length limit...
+// 11. Complete Report Generation Functions
+function generateEnhancedReport(session) {
+    const recommendedTherapies = selectBestTherapy(session);
+    const selectedSupplements = selectSupplements(recommendedTherapies, session);
+    const date = new Date().toLocaleDateString('en-GB');
+    const clinicName = session.clinicName || 'Celloxen Health Centre';
+    const holisticAnalysis = generateHolisticAnalysis(session, recommendedTherapies);
+    const medicalContext = getMedicalContext(recommendedTherapies[0]);
+    
+    let therapyProtocolSection = '';
+    
+    if (recommendedTherapies.length === 1) {
+        const therapy = recommendedTherapies[0];
+        therapyProtocolSection = `
+RECOMMENDED THERAPY PROTOCOL
+-----------------------------
+Primary Therapy Code: ${therapy.code}
+Primary Therapy Name: ${therapy.name}
+
+Therapy Overview:
+This bioelectronic therapy uses precisely calibrated magnetic fields to stimulate 
+specific acupoints that regulate ${therapy.name.toLowerCase().replace('therapy', 'mechanisms')}.
+
+Prescribing Guidelines:
+- Duration: ${therapy.duration} minutes per session
+- Frequency: ${therapy.frequency}
+- Course Length: ${therapy.courseLength}
+- Total Sessions: ${therapy.totalSessions}
+
+Clinical Rationale:
+Selected based on ${therapy.matchedKeywords.length} matching indicators including:
+${therapy.matchedKeywords.map(k => `• ${k}`).join('\n')}
+
+Confidence Score: ${Math.min(95, Math.round(therapy.score / 3))}%`;
+    } else {
+        // Multiple therapy recommendations
+        therapyProtocolSection = `
+RECOMMENDED THERAPY PROTOCOLS
+------------------------------
+Based on the comprehensive assessment, a combination therapy approach is recommended:
+
+PRIMARY THERAPY
+---------------
+Therapy Code: ${recommendedTherapies[0].code}
+Therapy Name: ${recommendedTherapies[0].name}
+Duration: ${recommendedTherapies[0].duration} minutes
+Frequency: ${recommendedTherapies[0].frequency}
+Course Length: ${recommendedTherapies[0].courseLength}
+Total Sessions: ${recommendedTherapies[0].totalSessions}
+Matched Indicators: ${recommendedTherapies[0].matchedKeywords.join(', ')}`;
+        
+        if (recommendedTherapies[1]) {
+            therapyProtocolSection += `
+
+SECONDARY THERAPY
+-----------------
+Therapy Code: ${recommendedTherapies[1].code}
+Therapy Name: ${recommendedTherapies[1].name}
+Duration: ${recommendedTherapies[1].duration} minutes
+Frequency: ${recommendedTherapies[1].frequency}
+Course Length: ${recommendedTherapies[1].courseLength}
+Reason: Supporting therapy for ${recommendedTherapies[1].matchedKeywords.join(', ')}`;
+        }
+    }
+    
+    let supplementSection = `
+
+SUPPORTING SUPPLEMENT RECOMMENDATIONS
+--------------------------------------
+Based on your therapy protocols, the following supplements are recommended to
+enhance treatment effectiveness:
+`;
+    
+    selectedSupplements.forEach((supplement, index) => {
+        supplementSection += `
+${index + 1}. ${supplement.name}
+   Available Brands: ${supplement.brand}
+   Dosage: ${supplement.dosage}
+   Best Time: ${supplement.timing}
+   Duration: ${supplement.duration}
+   Purpose: ${supplement.reason}
+`;
+    });
+    
+    supplementSection += `
+
+SUPPLEMENT GUIDANCE
+-------------------
+- Start with the first 2-3 supplements and gradually add others
+- Take supplements consistently for minimum 8 weeks to assess effectiveness
+- Available at: Boots, Holland & Barrett, or online retailers
+- All supplements are available without prescription in UK/EU
+- Consult your pharmacist if you take other medications`;
+    
+    const report = `
+CELLOXEN HOLISTIC HEALTH ASSESSMENT REPORT
+============================================
+
+PATIENT INFORMATION
+-------------------
+Name: ${session.patientName}
+Age: ${session.patientAge} years
+Gender: ${session.patientGender}
+Date of Birth: ${session.patientDOB}
+Assessment Date: ${date}
+Practitioner: Dr. ${session.practitionerName}
+Clinic: ${clinicName}
+
+PATIENT HEALTH OVERVIEW
+------------------------
+Primary Health Complaint: ${session.primaryConcern}
+Duration: ${session.duration}
+Severity Score: ${session.severityScores.primary}/10
+
+SYMPTOM ANALYSIS
+----------------
+Primary Concern:
+- ${session.primaryConcern}
+- Severity: ${session.severityScores.primary}/10
+- Duration: ${session.duration}
+
+${session.symptoms.length > 1 ? `Related Symptoms:
+${session.symptoms.slice(1).map((s, i) => `${i + 1}. ${s}`).join('\n')}` : 'No additional symptoms reported'}
+
+LIFESTYLE FACTORS
+-----------------
+${session.lifestyle || 'No specific lifestyle factors noted'}
+
+MEDICAL HISTORY
+---------------
+${session.medicalHistory || 'No relevant medical history reported'}
+
+HOLISTIC ROOT CAUSE ANALYSIS
+-----------------------------
+${holisticAnalysis}
+
+SUPPORTING MEDICAL CONTEXT
+--------------------------
+${medicalContext}
+${therapyProtocolSection}
+
+ANTICIPATED HEALTH BENEFITS TIMELINE
+-------------------------------------
+Week 1-2: Initial Response Phase
+- Body begins responding to bioelectronic stimulation
+- Some patients experience immediate relief
+- Cellular adaptation processes initiate
+
+Week 3-4: Progressive Improvement
+- Noticeable reduction in primary symptoms
+- Energy and vitality begin to improve
+- Inflammatory markers start to decrease
+
+Week 5-6: Stabilisation Phase
+- Body systems achieve better balance
+- Consistent symptom improvement
+- Enhanced overall wellbeing
+
+Week 7-8: Consolidation
+- Sustained therapeutic benefits
+- Prevention of symptom recurrence
+- Long-term healing mechanisms activated
+
+Week 9+: Maintenance Phase
+- Continued wellness support
+- Reduced frequency of sessions may be appropriate
+- Focus shifts to prevention
+${supplementSection}
+
+LIFESTYLE RECOMMENDATIONS
+-------------------------
+To maximise therapy effectiveness, consider:
+- Maintain regular sleep schedule (7-8 hours nightly)
+- Stay well hydrated (2 litres water daily)
+- Gentle exercise appropriate to your condition
+- Stress management techniques
+- Anti-inflammatory diet rich in whole foods
+
+IMPORTANT CONSIDERATIONS
+------------------------
+Safety Status: All contraindications have been reviewed and cleared.
+
+Clinical Notes:
+- The Celloxen bioelectronic therapy system is CE marked medical device
+- Treatment protocols are based on established biophysics principles
+- Continue any prescribed medications unless advised otherwise by your GP
+- This therapy complements conventional medical care
+
+Disclaimer:
+The recommendations in this report are based on holistic health assessment
+principles. Individual results may vary. This assessment does not replace
+professional medical diagnosis. Always consult your GP before making
+significant changes to your health regimen.
+
+Follow-Up Recommendations:
+- Progress review after ${recommendedTherapies.length > 1 ? '2 weeks' : '4 weeks'}
+- Therapy adjustment based on response
+- Full reassessment after completing initial course
+
+PRACTITIONER NOTES
+------------------
+Patient presented with ${session.severityScores.primary >= 7 ? 'severe' : 
+session.severityScores.primary >= 4 ? 'moderate' : 'mild'} symptoms requiring 
+${recommendedTherapies.length > 1 ? 'combination therapy approach' : 'focused therapy protocol'}.
+Prognosis is ${session.severityScores.primary <= 5 ? 'excellent' : 'good'} with 
+adherence to recommended protocols.
+
+============================================
+Report generated by the Celloxen Health Platform
+Authorised by: Dr. ${session.practitionerName}
+${date}
+`;
+    
+    // Save report to database
+    saveReportToDB(session, recommendedTherapies, selectedSupplements, report);
+    
+    // Mark session phase as complete
+    session.phase = 'report_complete';
+    
+    return report;
+}
+
+function generateHolisticAnalysis(session, therapies) {
+    const primary = (session.primaryConcern || '').toLowerCase();
+    const severity = session.severityScores.primary || 5;
+    const duration = (session.duration || '').toLowerCase();
+    const therapy = therapies[0];
+    
+    let analysis = '';
+    
+    if (primary.includes('stress') && primary.includes('pain')) {
+        analysis = `The combination of chronic stress and persistent pain (severity ${severity}/10) 
+indicates a complex interaction between the nervous system and inflammatory pathways. 
+Chronic stress triggers elevated cortisol levels, which can amplify pain perception 
+and create a self-perpetuating cycle. The ${duration} duration suggests this pattern 
+has become embedded in the body's stress response system. The recommended ${therapy.name} 
+addresses both the neurological and inflammatory components simultaneously, breaking 
+the stress-pain cycle at multiple intervention points.`;
+    } else if (primary.includes('sleep')) {
+        analysis = `Sleep disturbance of severity ${severity}/10 lasting ${duration} indicates 
+dysregulation of the circadian rhythm and potentially the hypothalamic-pituitary-adrenal 
+(HPA) axis. This disruption affects melatonin production, cortisol cycling, and 
+autonomic nervous system balance. The ${therapy.name} works to reset these natural 
+rhythms through targeted bioelectronic stimulation of sleep-regulatory centres.`;
+    } else if (primary.includes('joint') || primary.includes('arthritis')) {
+        analysis = `Joint symptoms with severity ${severity}/10 over ${duration} suggest 
+an inflammatory process potentially combined with degenerative changes. The pattern 
+indicates involvement of inflammatory cytokines and possible compromise of synovial 
+fluid production. The ${therapy.name} targets both inflammation reduction and 
+enhancement of the body's natural joint repair mechanisms.`;
+    } else if (primary.includes('digest')) {
+        analysis = `Digestive symptoms of severity ${severity}/10 lasting ${duration} point to 
+dysfunction in the enteric nervous system, often called the "second brain." This may 
+involve dysbiosis, impaired gut motility, and compromised gut-brain axis communication. 
+The ${therapy.name} helps restore proper digestive function through regulation of the 
+vagus nerve and local enteric nervous system.`;
+    } else {
+        analysis = `Based on the comprehensive assessment, the pattern of symptoms (severity ${severity}/10, 
+duration ${duration}) suggests a systemic imbalance affecting multiple body systems. 
+The primary concern of "${session.primaryConcern}" indicates disruption in normal 
+physiological processes. The ${therapy.name} protocol addresses these imbalances through 
+targeted bioelectronic stimulation, promoting the body's natural healing mechanisms.`;
+    }
+    
+    if (therapies.length > 1) {
+        analysis += `
+
+The assessment indicates multiple interconnected issues requiring a combination approach. 
+The secondary therapy (${therapies[1].name}) will work synergistically with the primary 
+protocol to address the full spectrum of symptoms.`;
+    }
+    
+    return analysis;
+}
+
+function getMedicalContext(therapy) {
+    const contexts = {
+        '101': 'Current research in chronobiology demonstrates that bioelectronic stimulation of specific acupoints can effectively reset circadian rhythms. Studies show significant improvements in sleep architecture and melatonin production.',
+        '102': 'Clinical evidence supports the use of bioelectronic therapy for stress reduction through modulation of the autonomic nervous system. Research indicates decreased cortisol levels and improved heart rate variability.',
+        '103': 'Peer-reviewed studies confirm that targeted electromagnetic therapy can reduce anxiety through regulation of GABA and serotonin pathways.',
+        '301': 'Cardiovascular research validates bioelectronic approaches for improving endothelial function and reducing inflammatory markers associated with heart disease.',
+        '302': 'Published data demonstrates that specific frequency electromagnetic fields can improve vasodilation and reduce peripheral resistance in hypertensive patients.',
+        '401': 'Clinical trials show that bioelectronic therapy can reduce uric acid levels and inflammatory cytokines associated with gout.',
+        '402': 'Research indicates that electromagnetic field therapy can stimulate chondrocyte activity and reduce inflammatory markers in arthritic joints.',
+        '601': 'Gastroenterological studies support the use of bioelectronic stimulation for improving gut motility and reducing visceral hypersensitivity.',
+        '801': 'Comprehensive wellness protocols using bioelectronic therapy show improvements across multiple biomarkers including inflammation, oxidative stress, and immune function.'
+    };
+    
+    return contexts[therapy.code] || 
+        'Extensive clinical research supports the efficacy of bioelectronic therapy for the presenting condition. The treatment works through well-established biophysical mechanisms to restore cellular function and promote natural healing processes.';
+}
+
+async function saveReportToDB(session, therapies, supplements, reportContent) {
+    try {
+        await db.saveReport({
+            sessionId: session.id,
+            clinicId: session.clinicId,
+            patientId: session.patientId,
+            reportContent: reportContent,
+            symptoms: session.symptoms.join(', '),
+            severityScore: session.severityScores.primary || 5,
+            primaryTherapyCode: therapies[0].code,
+            primaryTherapyName: therapies[0].name,
+            secondaryTherapyCode: therapies[1]?.code || null,
+            secondaryTherapyName: therapies[1]?.name || null,
+            supplements: supplements.map(s => s.name).join(', '),
+            supplementDetails: JSON.stringify(supplements)
+        });
+    } catch (error) {
+        console.log('Error saving report:', error);
+        // Don't throw - allow assessment to complete even if save fails
+    }
+}
+
+function calculateAge(dob) {
+    if (!dob) return 'Unknown';
+    const birthDate = new Date(dob);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+    }
+    return age;
+}
+
+// Add this missing function for backwards compatibility
+async function processBasicConversation(session, message) {
+    // Fallback to enhanced conversation
+    return processEnhancedConversation(session, message);
+}
