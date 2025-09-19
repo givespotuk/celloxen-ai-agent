@@ -551,13 +551,6 @@
             position: relative;
         }
 
-        /* Icon replacements for emojis */
-        .icon {
-            display: inline-block;
-            font-weight: bold;
-            font-size: 1.2em;
-        }
-
         /* Patient History Styles */
         .patient-info-card {
             background: #f8f9fa;
@@ -645,6 +638,7 @@
             padding: 10px 15px;
             border-radius: 8px;
             max-width: 70%;
+            animation: fadeIn 0.3s ease;
         }
 
         .chat-message.user {
@@ -678,6 +672,11 @@
             border-color: #00b4d8;
         }
 
+        .chat-input-area input:disabled {
+            background: #f5f5f5;
+            cursor: not-allowed;
+        }
+
         .medical-history-form textarea {
             width: 100%;
             min-height: 150px;
@@ -685,6 +684,80 @@
             border: 2px solid #e5e7eb;
             border-radius: 8px;
             resize: vertical;
+        }
+
+        /* Choice Buttons Styles */
+        .chat-choices {
+            margin: 15px 0;
+            padding: 10px;
+            background: #f0f8ff;
+            border-radius: 8px;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .choice-btn {
+            margin: 5px;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .choice-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 180, 216, 0.4);
+        }
+        
+        .choice-btn:disabled {
+            background: #6c757d !important;
+            cursor: not-allowed !important;
+            opacity: 0.6;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        /* Assessment Complete Styles */
+        .assessment-complete {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            border: 1px solid #c3e6cb;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            text-align: center;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .assessment-complete p {
+            color: #155724;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        
+        .assessment-complete button {
+            margin: 0 5px;
+            transition: all 0.3s ease;
+        }
+        
+        .assessment-complete button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
         }
 
         /* Responsive */
@@ -709,43 +782,10 @@
             .action-buttons-grid {
                 grid-template-columns: 1fr;
             }
-        }
-        
-        /* Add these styles to the existing <style> section */
-        .chat-choices {
-            margin: 15px 0;
-            padding: 10px;
-            background: #f0f8ff;
-            border-radius: 8px;
-        }
-        .choice-btn:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 180, 216, 0.4);
-        }
-        .choice-btn:disabled {
-            background: #6c757d !important;
-            cursor: not-allowed !important;
-        }
-        .chat-message {
-            animation: fadeIn 0.3s ease;
-        }
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
+            
+            .chat-message {
+                max-width: 90%;
             }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        /* Style for assessment completion message */
-        .assessment-complete {
-            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
-            border: 1px solid #c3e6cb;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
         }
     </style>
 </head>
@@ -861,8 +901,7 @@
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="dashboardAssessmentsBody">
-                                </tbody>
+                            <tbody id="dashboardAssessmentsBody"></tbody>
                         </table>
 
                         <div class="empty-state" id="dashboardEmptyState" style="display: none;">
@@ -892,8 +931,7 @@
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="dashboardPatientsBody">
-                                </tbody>
+                            <tbody id="dashboardPatientsBody"></tbody>
                         </table>
 
                         <div class="empty-state" id="patientsEmptyState" style="display: none;">
@@ -935,8 +973,7 @@
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="assessmentsTableBody">
-                                </tbody>
+                            <tbody id="assessmentsTableBody"></tbody>
                         </table>
 
                         <div class="empty-state" id="assessmentsEmptyState" style="display: none;">
@@ -970,8 +1007,7 @@
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="patientJourneyBody">
-                                </tbody>
+                            <tbody id="patientJourneyBody"></tbody>
                         </table>
                     </div>
                     
@@ -1012,8 +1048,7 @@
                     </div>
                     
                     <div id="patientInfoTab" class="patient-tab-content active">
-                        <div id="patientDetailsContent">
-                            </div>
+                        <div id="patientDetailsContent"></div>
                         <div style="margin-top: 20px;">
                             <button onclick="startAssessmentFromDetails()" class="filter-btn" style="background: #28a745;">New Assessment</button>
                         </div>
@@ -1030,8 +1065,7 @@
                     </div>
                     
                     <div id="patientAssessmentsTab" class="patient-tab-content">
-                        <div id="patientAssessmentHistory">
-                            </div>
+                        <div id="patientAssessmentHistory"></div>
                     </div>
                 </div>
 
@@ -1040,8 +1074,7 @@
                         <h3>Health Assessment in Progress</h3>
                         <button onclick="cancelAssessment()" class="filter-btn" style="background: #dc3545;">Cancel Assessment</button>
                     </div>
-                    <div id="assessmentChat" class="assessment-chat">
-                        </div>
+                    <div id="assessmentChat" class="assessment-chat"></div>
                     <div class="chat-input-area">
                         <input type="text" id="assessmentInput" placeholder="Type your response..." 
                                onkeypress="if(event.key==='Enter') sendAssessmentMessage()">
@@ -1075,6 +1108,7 @@
         let hasRedirected = false;
         let selectedPatient = null;
         let currentPatientDetails = null;
+        let currentAssessmentSession = null;
 
         // Check authentication
         const token = localStorage.getItem('token');
@@ -1094,6 +1128,64 @@
             // Load initial data
             loadDashboard();
         }
+
+        // Session validation helper
+        function validateSession() {
+            if (!currentAssessmentSession) {
+                showAlert('Session expired. Please start a new assessment.', 'error');
+                returnToPatientDetails();
+                return false;
+            }
+            return true;
+        }
+
+        // Test function for debugging
+        async function testAssessmentSystem() {
+            console.log('Testing Assessment System...');
+            
+            const testData = {
+                action: 'start',
+                clinicId: user.clinicId || user.clinic_id || user.id,
+                patientId: 'TEST-001',
+                patientName: 'Test Patient',
+                useEnhanced: true
+            };
+            
+            try {
+                const response = await fetch('/api/embeddedHealthAgent', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(testData)
+                });
+                
+                const data = await response.json();
+                console.log('Test Response:', data);
+                
+                if (data.choices && data.choices.length > 0) {
+                    console.log('✅ Choice system working');
+                    console.log('Choices:', data.choices);
+                } else {
+                    console.log('⚠️ No choices returned');
+                }
+                
+                if (data.message) {
+                    console.log('✅ Message format correct');
+                    console.log('Message:', data.message);
+                }
+                
+                if (data.sessionId) {
+                    console.log('✅ Session ID generated:', data.sessionId);
+                }
+                
+                return data;
+            } catch (error) {
+                console.error('❌ Test failed:', error);
+                return null;
+            }
+        }
+
+        // Uncomment to run test:
+        // testAssessmentSystem();
 
         async function loadDashboard() {
             const loadingDiv = document.getElementById('loadingDiv');
@@ -1161,6 +1253,7 @@
                 
             } catch (error) {
                 console.error('Error loading dashboard:', error);
+                showAlert('Error loading dashboard data', 'error');
             } finally {
                 if (loadingDiv) loadingDiv.classList.remove('show');
             }
@@ -1289,6 +1382,7 @@
                         clinicId: clinicId
                     })
                 });
+                
                 if (response.ok) {
                     const data = await response.json();
                     currentPatientDetails = data;
@@ -1302,7 +1396,7 @@
                         document.getElementById('patientDetailsSection').style.display = 'block';
                     } else {
                         showAlert('Patient details not found', 'error');
-                        loadDashboard(); // Refresh the data
+                        loadDashboard();
                     }
                 }
             } catch (error) {
@@ -1420,8 +1514,10 @@
             if (!confirm(`Are you sure you want to delete patient ${patientName}? This will mark them as inactive.`)) {
                 return;
             }
-                const clinicId = user.clinicId || user.clinic_id || user.id;
-                try {
+            
+            const clinicId = user.clinicId || user.clinic_id || user.id;
+            
+            try {
                 const response = await fetch('/api/deletePatient', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
@@ -1430,7 +1526,8 @@
                         clinicId: clinicId
                     })
                 });
-                        if (response.ok) {
+                
+                if (response.ok) {
                     showAlert('Patient deleted successfully', 'success');
                     loadDashboard();
                 } else {
@@ -1565,18 +1662,19 @@
             await startEmbeddedAssessment(patient.patient_id, patientName);
         }
 
-        // Embedded Assessment Functions
-        let currentAssessmentSession = null;
-        
+        // Enhanced Embedded Assessment Functions with improved error handling
         async function startEmbeddedAssessment(patientId, patientName) {
+            // Add loading state
+            const chatDiv = document.getElementById('assessmentChat');
+            if (chatDiv) {
+                chatDiv.innerHTML = '<div class="loading show"><div class="spinner"></div><p>Starting assessment...</p></div>';
+            }
+            
             document.getElementById('patientDetailsSection').style.display = 'none';
             document.getElementById('embeddedAssessmentSection').style.display = 'block';
         
-            // Clear and prepare the chat interface
-            const chatDiv = document.getElementById('assessmentChat');
+            // Prepare the chat interface
             const input = document.getElementById('assessmentInput');
-        
-            if (chatDiv) chatDiv.innerHTML = '';
             if (input) {
                 input.disabled = false;
                 input.placeholder = 'Type your response or select an option above...';
@@ -1594,34 +1692,48 @@
                         clinicId: clinicId,
                         patientId: patientId,
                         patientName: patientName,
-                        useEnhanced: true // Force enhanced mode
+                        useEnhanced: true
                     })
                 });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to start assessment');
+                }
         
                 const data = await response.json();
+                
+                // Clear loading state
+                if (chatDiv) chatDiv.innerHTML = '';
+                
                 currentAssessmentSession = data.sessionId;
-        
+                
                 // Display first message with any choices
                 addChatMessage(data.message, 'assistant', data.choices || []);
         
             } catch (error) {
                 console.error('Error starting assessment:', error);
                 showAlert('Failed to start assessment. Please try again.', 'error');
+                
+                // Return to patient details on error
+                document.getElementById('embeddedAssessmentSection').style.display = 'none';
+                document.getElementById('patientDetailsSection').style.display = 'block';
             }
         }
 
         function addChatMessage(message, sender, choices = []) {
             const chatDiv = document.getElementById('assessmentChat');
             if (!chatDiv) return;
+            
             const msgDiv = document.createElement('div');
             msgDiv.className = `chat-message ${sender}`;
         
-            // Handle the message text
+            // Handle the message text with line breaks
             if (message && message.includes('\n')) {
                 msgDiv.innerHTML = message.replace(/\n/g, '<br>');
             } else {
                 msgDiv.textContent = message || '';
             }
+            
             chatDiv.appendChild(msgDiv);
         
             // Add choice buttons if present
@@ -1693,12 +1805,15 @@
         }
         
         function sendAssessmentMessage(presetMessage = null) {
+            // Validate session first
+            if (!validateSession()) return;
+            
             const input = document.getElementById('assessmentInput');
             const message = presetMessage || input.value.trim();
         
-            if (!message || !currentAssessmentSession) return;
+            if (!message) return;
         
-            // Only add user message if it's not already added by button click
+            // Add user message
             if (!presetMessage) {
                 addChatMessage(message, 'user');
             } else {
@@ -1722,7 +1837,12 @@
                     clinicId: user.clinicId || user.clinic_id || user.id
                 })
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to send message');
+                }
+                return response.json();
+            })
             .then(data => {
                 // Re-enable input
                 if (input) input.disabled = false;
@@ -1761,18 +1881,9 @@
             const chatDiv = document.getElementById('assessmentChat');
             if (chatDiv) {
                 const completionDiv = document.createElement('div');
-                completionDiv.style.cssText = `
-                    margin: 20px 0;
-                    padding: 20px;
-                    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
-                    border-radius: 10px;
-                    text-align: center;
-                `;
-        
+                completionDiv.className = 'assessment-complete';
                 completionDiv.innerHTML = `
-                    <p style="color: #155724; font-weight: 600; margin-bottom: 15px;">
-                        Assessment completed successfully! The report has been saved.
-                    </p>
+                    <p>Assessment completed successfully! The report has been saved.</p>
                     <div style="display: flex; gap: 10px; justify-content: center;">
                         <button onclick="viewCompletedAssessment()" style="
                             padding: 10px 20px;
@@ -1858,7 +1969,10 @@
                 const chatDiv = document.getElementById('assessmentChat');
                 if (chatDiv) chatDiv.innerHTML = '';
                 const input = document.getElementById('assessmentInput');
-                if (input) input.value = '';
+                if (input) {
+                    input.value = '';
+                    input.disabled = false;
+                }
             }
         }
 
@@ -1868,6 +1982,9 @@
                 setTimeout(() => {
                     startAssessmentFromDetails();
                 }, 500);
+            }).catch(error => {
+                console.error('Error starting assessment:', error);
+                showAlert('Failed to start assessment', 'error');
             });
         }
 
@@ -2010,6 +2127,9 @@
 
         function hideNewPatientForm() {
             document.getElementById('newPatientForm').style.display = 'none';
+            // Clear form
+            document.getElementById('newPatientForm').querySelectorAll('input').forEach(input => input.value = '');
+            document.getElementById('gender').value = '';
         }
 
         async function registerPatient() {
@@ -2018,7 +2138,7 @@
             const phone = document.getElementById('patientPhone').value;
         
             if (!firstName || !lastName || !phone) {
-                showAlert('Please fill required fields', 'error');
+                showAlert('Please fill in all required fields', 'error');
                 return;
             }
         
@@ -2045,10 +2165,6 @@
                 if (data.success) {
                     showAlert('Patient registered successfully!', 'success');
                     hideNewPatientForm();
-        
-                    // Clear form
-                    document.getElementById('newPatientForm').querySelectorAll('input').forEach(input => input.value = '');
-                    document.getElementById('gender').value = '';
         
                     // Reload dashboard to get fresh data
                     await loadDashboard();
@@ -2156,6 +2272,10 @@
                 showAlert('Error downloading report', 'error');
             });
         }
+        
+        function downloadAllReports() {
+            showAlert('Export functionality coming soon', 'info');
+        }
 
         function showSection(sectionName) {
             document.querySelectorAll('.menu-item').forEach(item => {
@@ -2186,7 +2306,7 @@
 
         function showAlert(message, type) {
             const alertId = type === 'success' ? 'successAlert' : 
-                               type === 'error' ? 'errorAlert' : 'infoAlert';
+                           type === 'error' ? 'errorAlert' : 'infoAlert';
             const alert = document.getElementById(alertId);
             
             if (alert) {
@@ -2205,7 +2325,7 @@
             }
             
             localStorage.removeItem('token');
-            localStorage.removeItem('user');  // This was split across two lines
+            localStorage.removeItem('user');
             sessionStorage.clear();
             window.location.href = '/login.html';
         }
@@ -2232,6 +2352,14 @@
             if (assessmentCompleted) {
                 showAlert('Assessment completed successfully!', 'success');
                 sessionStorage.removeItem('assessmentCompleted');
+                loadDashboard();
+            }
+        });
+
+        // Handle page visibility for auto-refresh
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                // Page is visible again, refresh data
                 loadDashboard();
             }
         });
