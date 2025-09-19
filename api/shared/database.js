@@ -25,7 +25,7 @@ module.exports = {
         
         const values = [
             sessionData.sessionId,
-            sessionData.clinicId || null,  // Add clinic ID
+            sessionData.clinicId || null,
             sessionData.practitionerName || sessionData.clinicName || 'Clinic',
             sessionData.patientName || null,
             sessionData.patientDob || null,
@@ -72,10 +72,19 @@ module.exports = {
             INSERT INTO ai_agent_reports 
             (session_id, clinic_id, report_content, symptoms, severity_score, therapy_code, therapy_name, supplement_recommendations)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            ON CONFLICT (session_id) 
+            DO UPDATE SET 
+                report_content = EXCLUDED.report_content,
+                symptoms = EXCLUDED.symptoms,
+                severity_score = EXCLUDED.severity_score,
+                therapy_code = EXCLUDED.therapy_code,
+                therapy_name = EXCLUDED.therapy_name,
+                supplement_recommendations = EXCLUDED.supplement_recommendations,
+                updated_at = CURRENT_TIMESTAMP
             RETURNING report_id`;
         
         try {
-            // Get clinic_id from session
+            // Get clinic_id from session if not provided
             let clinicId = reportData.clinicId;
             if (!clinicId) {
                 const sessionResult = await pool.query(
@@ -91,11 +100,12 @@ module.exports = {
                 reportData.reportContent,
                 reportData.symptoms,
                 reportData.severityScore || 0,
-                reportData.therapyCode,
-                reportData.therapyName,
-                reportData.supplements
+                reportData.primaryTherapyCode || reportData.therapyCode,
+                reportData.primaryTherapyName || reportData.therapyName,
+                reportData.supplements || reportData.supplement_recommendations
             ]);
             
+            // Update session status
             await pool.query(
                 `UPDATE ai_agent_sessions 
                  SET status = 'completed', 
@@ -103,16 +113,56 @@ module.exports = {
                      recommended_therapy_code = $1,
                      recommended_therapy_name = $2
                  WHERE session_id = $3`,
-                [reportData.therapyCode, reportData.therapyName, reportData.sessionId]
+                [
+                    reportData.primaryTherapyCode || reportData.therapyCode,
+                    reportData.primaryTherapyName || reportData.therapyName,
+                    reportData.sessionId
+                ]
             );
             
-            return result.rows[0].report_id;
+            return result.rows[0]?.report_id;
         } catch (error) {
             console.error('Error saving report:', error);
             return null;
         }
     },
 
+    // Add these additional functions that embeddedHealthAgent expects
+    async getPatient(patientId, clinicId) {
+        const query = `
+            SELECT * FROM patients 
+            WHERE patient_id = $1 AND clinic_id = $2 AND status = 'active'`;
+        
+        try {
+            const result = await pool.query(query, [patientId, clinicId]);
+            return result.rows[0];
+        } catch (error) {
+            console.error('Database getPatient error:', error);
+            return null;
+        }
+    },
+
+    async updatePatient(patientId, clinicId, updates) {
+        const fields = Object.keys(updates);
+        const values = Object.values(updates);
+        const setClause = fields.map((field, index) => `${field} = $${index + 3}`).join(', ');
+        
+        const query = `
+            UPDATE patients 
+            SET ${setClause}, updated_at = CURRENT_TIMESTAMP
+            WHERE patient_id = $1 AND clinic_id = $2
+            RETURNING *`;
+        
+        try {
+            const result = await pool.query(query, [patientId, clinicId, ...values]);
+            return result.rows[0];
+        } catch (error) {
+            console.error('Database updatePatient error:', error);
+            throw error;
+        }
+    },
+
+    // Keep all your existing functions below...
     async getReport(reportId) {
         const query = `
             SELECT r.*, s.practitioner_name, s.patient_name, s.patient_dob, s.patient_gender, s.clinic_id
@@ -161,7 +211,6 @@ module.exports = {
         }
     },
 
-    // Check clinic usage limits
     async checkClinicUsage(clinicId) {
         if (!clinicId) return { allowed: true };
         
@@ -191,11 +240,10 @@ module.exports = {
             };
         } catch (error) {
             console.error('Error checking clinic usage:', error);
-            return { allowed: true }; // Allow by default if check fails
+            return { allowed: true };
         }
     },
 
-    // Get supplements for a therapy code
     async getSupplementsForTherapy(therapyCode) {
         const query = `
             SELECT supplement_name, dosage, duration, benefits 
@@ -212,7 +260,6 @@ module.exports = {
         }
     },
 
-    // Get all supplements
     async getAllSupplements() {
         const query = `
             SELECT * FROM ai_agent_supplements 
@@ -227,7 +274,6 @@ module.exports = {
         }
     },
 
-    // Save patient to clinic
     async savePatient(clinicId, patientData) {
         const query = `
             INSERT INTO patients (clinic_id, patient_name, patient_dob, patient_gender, patient_email, patient_phone)
@@ -253,5 +299,10 @@ module.exports = {
             console.error('Error saving patient:', error);
             return null;
         }
+    },
+
+    // Close pool for cleanup
+    async closePool() {
+        await pool.end();
     }
 };
